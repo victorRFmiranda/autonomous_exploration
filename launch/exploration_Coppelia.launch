@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+    <!-- Motion Control (v and w) -->
+    <node pkg="autonomous_exploration" type="motion_control.py" name="control_0" args="0"/>
+
+    <!-- <node pkg="tf"
+        type="static_transform_publisher"
+        name="link1_broadcaster"
+        args="-20 -20 0 0 0 0 world odom 100" /> -->
+
+    <!-- OCTOMAP -->
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+        <param name="resolution" value="0.1" />
+        <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+        <param name="frame_id" type="string" value="odom" />
+        <!-- maximum range to integrate (speedup!) -->
+        <param name="sensor_model/max_range" value="8.0" />
+        <!--param name ="filter_ground" value="true" /-->
+        <!-- <param name="ground_filter/plane_distance" value = "0.1" />
+        <param name="ground_filter/distance" value = "0.1" /> -->
+        <param name="pointcloud_min_z" type="double" value="-0.2" />
+        <!-- data source to integrate (PointCloud2) -->
+        <remap from="cloud_in" to="/velodyne/points2" />
+    </node>
+
+
+    <!-- Frontier Detect -->
+    <!-- <node pkg="autonomous_exploration" type="frontier_opencv.py" name="frontier_detect"/> -->
+
+
+    <!-- RVIZ Visualization -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find autonomous_exploration)/rviz/config_coppelia.rviz"/>
+    
+</launch>
+ 
