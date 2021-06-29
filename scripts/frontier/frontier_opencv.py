@@ -40,7 +40,7 @@ def node():
 		goal = PointStamped()
 		rospy.init_node('FrontierDetector', anonymous=False)
 		# map_topic= rospy.get_param('~map_topic','/robot_1/map')
-		map_topic = '/projected_map'
+		map_topic = '/map'
 		rospy.Subscriber(map_topic, OccupancyGrid, mapCallBack)
 
 		targetspub = rospy.Publisher('/frontier_points', PointStamped, queue_size=10)

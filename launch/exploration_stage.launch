@@ -23,6 +23,11 @@
         <param name="odom_frame" value="world" />
     </node>
 
+    <!-- Frontier Detect -->
+    <!-- <node pkg="autonomous_exploration" type="frontier_lidar.py" name="Detect_frontier">
+        <remap from="/map" to="/projected_map"/>
+    </node> -->
+
 
     <!-- RVIZ Visualization -->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find autonomous_exploration)/rviz/config.rviz"/>

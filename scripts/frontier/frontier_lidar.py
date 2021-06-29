@@ -14,6 +14,10 @@ from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log, atan
 #--------Sklearn modules----------------------
 from sklearn.cluster import DBSCAN, KMeans
 
+#--------OpenCv------------------------------
+import cv2
+
+
 
 
 
@@ -84,6 +88,43 @@ def compute_frontiers(width,height,resol,origem_map,mapData, robot_states):
 
 
 
+def create_image(mapa, centers):
+	matrix = np.asarray(mapa.data)
+	h = mapa.info.height
+	w = mapa.info.width
+	r = mapa.info.resolution
+	om = [mapa.info.origin.position.x, mapa.info.origin.position.y]
+
+	for k in range(len(centers)):
+		i_w = np.around( (centers[k][0] - om[0] - r/2.0)/r ).astype(int)
+		j_h = np.around( (centers[k][1] - om[1] - r/2.0)/r ).astype(int)
+		# print(matrix[j_h*w + i_w])
+		matrix[j_h*w + i_w] = -100
+		matrix[(j_h+1)*w + i_w] = -100
+		matrix[(j_h-1)*w + i_w] = -100
+		matrix[j_h*w + i_w + 1] = -100
+		matrix[j_h*w + i_w - 1] = -100
+		matrix[(j_h+1)*w + i_w + 1] = -100
+		matrix[(j_h+1)*w + i_w - 1] = -100
+		matrix[(j_h-1)*w + i_w + 1] = -100
+		matrix[(j_h-1)*w + i_w - 1] = -100
+
+	image = np.zeros((h,w,3))
+	for i in range(0,h):
+		for j in range(0,w):
+			if(matrix[i*w+j] == 100):
+				image[i,j] = [0,0,0]
+			elif(matrix[i*w+j] == -1):
+				image[i,j] = [192,192,0]
+			elif(matrix[i*w+j] == 0):
+				image[i,j] = [255,255,255]
+			elif(matrix[i*w+j] == -100):
+				image[i,j] = [255,0,0]
+
+	
+
+	# image = cv2.flip(image, 0);
+	return image
 
 
 
@@ -93,7 +134,7 @@ def run():
 
 	# Subscribers
 	rospy.Subscriber('/odom', Odometry, callback_pose)
-	rospy.Subscriber('/projected_map', OccupancyGrid, callback_map)
+	rospy.Subscriber('/map', OccupancyGrid, callback_map)
 
 	# Publishers
 	targetspub = rospy.Publisher('/frontier_points', PointStamped, queue_size=10)
@@ -104,6 +145,8 @@ def run():
 	rate = rospy.Rate(10)
 
 	while mapData.header.seq<1 or len(mapData.data)<1:
+		print("Waiting Map")
+		rate.sleep()
 		pass
 
 	exploration_goal=PointStamped()
@@ -111,6 +154,8 @@ def run():
 	while not rospy.is_shutdown():
 		frontiers = compute_frontiers(width,height,resol, origem_map, mapData, robot_states)
 		# print(len(frontiers))
+
+		
 
 		pointArray=MarkerArray()
 		for i in range(len(frontiers)):
@@ -161,7 +206,8 @@ def run():
 
 
 		# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
-		num_clusters = int(len(frontiers)/20)
+		num_clusters = int(round(len(frontiers)*0.2))
+		# print(num_clusters)
 		kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
 
 		clusterArray= MarkerArray()
@@ -198,6 +244,9 @@ def run():
 
 		pub2.publish(clusterArray) 
 
+		image = create_image(mapData, kmeans.cluster_centers_)
+		cv2.imshow('image',image)
+		# cv2.waitKey(0)
 
 
 
