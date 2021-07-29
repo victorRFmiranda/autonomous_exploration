@@ -5,11 +5,14 @@
 import rospy
 from visualization_msgs.msg import Marker, MarkerArray
 from nav_msgs.msg import Odometry, OccupancyGrid
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, Point
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 from getfrontier import getfrontier
 from tf.transformations import euler_from_quaternion
 import numpy as np
 from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log, atan
+from autonomous_exploration.msg import frontier
 
 #--------Sklearn modules----------------------
 from sklearn.cluster import DBSCAN, KMeans
@@ -95,27 +98,27 @@ def create_image(mapa, centers):
 	r = mapa.info.resolution
 	om = [mapa.info.origin.position.x, mapa.info.origin.position.y]
 
-	for k in range(len(centers)):
-		i_w = np.around( (centers[k][0] - om[0] - r/2.0)/r ).astype(int)
-		j_h = np.around( (centers[k][1] - om[1] - r/2.0)/r ).astype(int)
-		# print(matrix[j_h*w + i_w])
-		matrix[j_h*w + i_w] = -100
-		matrix[(j_h+1)*w + i_w] = -100
-		matrix[(j_h-1)*w + i_w] = -100
-		matrix[j_h*w + i_w + 1] = -100
-		matrix[j_h*w + i_w - 1] = -100
-		matrix[(j_h+1)*w + i_w + 1] = -100
-		matrix[(j_h+1)*w + i_w - 1] = -100
-		matrix[(j_h-1)*w + i_w + 1] = -100
-		matrix[(j_h-1)*w + i_w - 1] = -100
+	# for k in range(len(centers)):
+	# 	i_w = np.around( (centers[k][0] - om[0] - r/2.0)/r ).astype(int)
+	# 	j_h = np.around( (centers[k][1] - om[1] - r/2.0)/r ).astype(int)
+	# 	# print(matrix[j_h*w + i_w])
+	# 	matrix[j_h*w + i_w] = -100
+	# 	matrix[(j_h+1)*w + i_w] = -100
+	# 	matrix[(j_h-1)*w + i_w] = -100
+	# 	matrix[j_h*w + i_w + 1] = -100
+	# 	matrix[j_h*w + i_w - 1] = -100
+	# 	matrix[(j_h+1)*w + i_w + 1] = -100
+	# 	matrix[(j_h+1)*w + i_w - 1] = -100
+	# 	matrix[(j_h-1)*w + i_w + 1] = -100
+	# 	matrix[(j_h-1)*w + i_w - 1] = -100
 
-	image = np.zeros((h,w,3))
+	image = np.zeros((h,w,3)).astype(np.uint8)
 	for i in range(0,h):
 		for j in range(0,w):
 			if(matrix[i*w+j] == 100):
 				image[i,j] = [0,0,0]
 			elif(matrix[i*w+j] == -1):
-				image[i,j] = [192,192,0]
+				image[i,j] = [192,192,192]
 			elif(matrix[i*w+j] == 0):
 				image[i,j] = [255,255,255]
 			elif(matrix[i*w+j] == -100):
@@ -137,116 +140,138 @@ def run():
 	rospy.Subscriber('/map', OccupancyGrid, callback_map)
 
 	# Publishers
-	targetspub = rospy.Publisher('/frontier_points', PointStamped, queue_size=10)
+	#targetspub = rospy.Publisher('/frontier_points', PointStamped, queue_size=10)
 	pub = rospy.Publisher('/frontier_markers', MarkerArray, queue_size=1)
 	pub2 = rospy.Publisher('/cluster_markers', MarkerArray, queue_size=1)
+	pub_map = rospy.Publisher("/map_image", Image, queue_size=1)
+	pub_frontiers = rospy.Publisher("/frontier_points", frontier, queue_size=1)
 
 	# routine frequency
 	rate = rospy.Rate(10)
 
-	while mapData.header.seq<1 or len(mapData.data)<1:
+	while len(mapData.data)<1:
 		print("Waiting Map")
 		rate.sleep()
 		pass
 
-	exploration_goal=PointStamped()
+	#exploration_goal=PointStamped()
+	ft_array = frontier()
 
 	while not rospy.is_shutdown():
 		frontiers = compute_frontiers(width,height,resol, origem_map, mapData, robot_states)
 		# print(len(frontiers))
 
-		
+		if(len(frontiers) > 2):
 
-		pointArray=MarkerArray()
-		for i in range(len(frontiers)):
-			points=Marker()
-			#Set the frame ID and timestamp.  See the TF tutorials for information on these.
-			points.header.frame_id=mapData.header.frame_id
-			points.header.stamp=rospy.Time.now()
+			pointArray=MarkerArray()
+			for i in range(len(frontiers)):
+				ft = Point()
+				points=Marker()
+				#Set the frame ID and timestamp.  See the TF tutorials for information on these.
+				points.header.frame_id=mapData.header.frame_id
+				points.header.stamp=rospy.Time.now()
 
-			# points.ns= "markers"
-			points.id = i
+				# points.ns= "markers"
+				points.id = i
 
-			points.type = Marker.SPHERE
-			points.scale.x = 0.1
-			points.scale.y = 0.1
-			points.scale.z = 0.1
-			#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
-			points.action = Marker.ADD;
+				points.type = Marker.SPHERE
+				points.scale.x = 0.1
+				points.scale.y = 0.1
+				points.scale.z = 0.1
+				#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
+				points.action = Marker.ADD;
 
-			points.pose.orientation.w = 1.0;
-			points.scale.x=points.scale.y=0.1;
-			points.color.r = 255.0/255.0
-			points.color.g = 0.0/255.0
-			points.color.b = 0.0/255.0
-			points.color.a=1;
-			points.lifetime == rospy.Duration();
-
-
-			x=frontiers[i]
-
-			points.pose.position.x = x[0]
-			points.pose.position.y = x[1]
-			points.pose.position.z = 0
-
-			exploration_goal.header.frame_id= mapData.header.frame_id
-			exploration_goal.header.stamp=rospy.Time(0)
-			exploration_goal.point.x=x[0]
-			exploration_goal.point.y=x[1]
-			exploration_goal.point.z=0	
-
-			targetspub.publish(exploration_goal)
-			# points.points=[exploration_goal.point]
-
-			pointArray.markers.append(points)
-			
-		pub.publish(pointArray) 
+				points.pose.orientation.w = 1.0;
+				points.scale.x=points.scale.y=0.1;
+				points.color.r = 255.0/255.0
+				points.color.g = 0.0/255.0
+				points.color.b = 0.0/255.0
+				points.color.a=1;
+				points.lifetime == rospy.Duration();
 
 
+				x=frontiers[i]
+
+				points.pose.position.x = x[0]
+				points.pose.position.y = x[1]
+				points.pose.position.z = 0
+				
+
+				#exploration_goal.header.frame_id= mapData.header.frame_id
+				#exploration_goal.header.stamp=rospy.Time(0)
+				#exploration_goal.point.x=x[0]
+				#exploration_goal.point.y=x[1]
+				#exploration_goal.point.z=0	
+
+				#targetspub.publish(exploration_goal)
+				ft.x = x[0]
+				ft.y = x[1]
+				ft.z = 0.0
+				ft_array.frontiers.append(ft)
+
+				# points.points=[exploration_goal.point]
+
+				pointArray.markers.append(points)
+				
+			pub.publish(pointArray) 
 
 
-		# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
-		num_clusters = int(round(len(frontiers)*0.2))
-		# print(num_clusters)
-		kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
 
-		clusterArray= MarkerArray()
-		for k in range(num_clusters):
-			p = Marker()
-			#Set the frame ID and timestamp.  See the TF tutorials for information on these.
-			p.header.frame_id=mapData.header.frame_id
-			p.header.stamp=rospy.Time.now()
 
-			# points.ns= "markers"
-			p.id = k
+			# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
+			num_clusters = int(round(len(frontiers)*0.2))
+			# print(num_clusters)
+			kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
 
-			p.type = Marker.SPHERE
-			p.scale.x = 0.2
-			p.scale.y = 0.2
-			p.scale.z = 0.2
-			#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
-			p.action = Marker.ADD;
+			clusterArray= MarkerArray()
+			for k in range(num_clusters):
+				p = Marker()
+				ft = Point()
+				#Set the frame ID and timestamp.  See the TF tutorials for information on these.
+				p.header.frame_id=mapData.header.frame_id
+				p.header.stamp=rospy.Time.now()
 
-			p.pose.orientation.w = 1.0;
-			p.scale.x=p.scale.y=0.1;
-			p.color.r = 0.0/255.0
-			p.color.g = 0.0/255.0
-			p.color.b = 255.0/255.0
-			p.color.a=1;
-			p.lifetime == rospy.Duration();
+				# points.ns= "markers"
+				p.id = k
 
-			pos = kmeans.cluster_centers_[k]
-			p.pose.position.x = pos[0]
-			p.pose.position.y = pos[1]
-			p.pose.position.z = 0
+				p.type = Marker.SPHERE
+				p.scale.x = 0.2
+				p.scale.y = 0.2
+				p.scale.z = 0.2
+				#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
+				p.action = Marker.ADD;
 
-			clusterArray.markers.append(p)
+				p.pose.orientation.w = 1.0;
+				p.scale.x=p.scale.y=0.1;
+				p.color.r = 0.0/255.0
+				p.color.g = 0.0/255.0
+				p.color.b = 255.0/255.0
+				p.color.a=1;
+				p.lifetime == rospy.Duration();
 
-		pub2.publish(clusterArray) 
+				pos = kmeans.cluster_centers_[k]
+				p.pose.position.x = pos[0]
+				p.pose.position.y = pos[1]
+				p.pose.position.z = 0
 
-		image = create_image(mapData, kmeans.cluster_centers_)
-		cv2.imshow('image',image)
-		# cv2.waitKey(0)
+				clusterArray.markers.append(p)
+
+				ft.x = pos[0]
+				ft.y = pos[1]
+				ft.z = 0.0
+				ft_array.clusters.append(ft)
+
+			pub2.publish(clusterArray) 
+
+			pub_frontiers.publish(ft_array)
+
+			image = create_image(mapData, kmeans.cluster_centers_)
+			# cv2.imshow('image',image)
+			# cv2.waitKey(0)
+
+			bridge = CvBridge()
+			map_image = bridge.cv2_to_imgmsg(image, encoding="bgr8")
+			pub_map.publish(map_image)
 
 
 
