@@ -1,0 +1,7 @@
+GMAP:
+  xmin: -25.0
+  ymin: -25.0
+  xmax: 25.0
+  ymax: 25.0
+  delta: 0.1
+  odom_frame: "world"

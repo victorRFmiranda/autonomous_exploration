@@ -33,4 +33,3 @@
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find autonomous_exploration)/rviz/config.rviz"/>
     
 </launch>
- 

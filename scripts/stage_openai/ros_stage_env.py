@@ -22,6 +22,7 @@ class StageEnvironment(gym.Env):
 		self.max_actions = args.max_action_count    # num actions for epoch (how many times check all frontiers)
 		self.num_initstates = args.n_init 			# num start positions before change the map
 		self.maps = args.maps_gt					# vector with name of stage maps for training
+		self.map_count = 0
 
 		self.init_pose = [-20.0, -20.0, 0.0]		# x, y, theta  -- Came from a parameters ?
 		self.robot_pose = [0.0, 0.0, 0.0]			# x, y, theta
@@ -34,7 +35,13 @@ class StageEnvironment(gym.Env):
 
 	# change the map for training
 	def reset_map(self):
-		print("map")
+		node = "/stageros"
+		os.system("rosnode kill "+ node)
+		time.sleep(1)
+		os.system("gnome-terminal -x roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
+		time.sleep(1)
+		print("map changed")
+		self.map_count += 1
 
 	# restart stage (robot back to the init position) - change the robot pose in training code
 	def reset_pose(self, data):
@@ -49,6 +56,14 @@ class StageEnvironment(gym.Env):
 		msg_pos.position.z = 0.0
 		self.pub_pose.publish(msg_pos)
 		print("Pose reseted\n")
+
+		# Reset Gmapping
+		node = "/GMAP"
+		os.system("rosnode kill "+ node)
+		time.sleep(1)
+		os.system("gnome-terminal -x roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
+		time.sleep(1)
+		print("gmapping reseted")
 
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
@@ -97,17 +112,19 @@ def _dist(p1,p2):
 from config import Config
 args = Config().parse()
 # set argumments
-args.num_actions = 1
-args.max_action_count = 2
-args.n_init = 4
-args.maps_gt = 5
+# args.num_actions = 1
+# args.max_action_count = 2
+# args.n_init = 4
+# args.maps_gt = 5
 env = StageEnvironment(args)
 
 cont = 0
 rate = rospy.Rate(1)
 goal = [-20,-15]
-time.sleep(2)
 init_pose = env.init_pose
+# os.system("gnome-terminal -x roslaunch autonomous_exploration test_stage.launch map:="+args.maps_gt[0])
+env.reset_map()
+time.sleep(2)
 while not rospy.is_shutdown() and cont < args.n_init:
 	print("Epoch: %d" % cont)
 	for times in range(args.max_action_count):
@@ -116,12 +133,9 @@ while not rospy.is_shutdown() and cont < args.n_init:
 		rospy.sleep(1)
 		env.step(goal)
 
-	if(cont > 0):
-		node = "/stageros"
-		os.system("rosnode kill "+ node)
-		time.sleep(1)
-		os.system("roslaunch autonomous_exploration test_stage.launch map:=map1");
-			
+	# if(cont == 1):	
+
+	env.reset_map()			
 	init_pose = copy.deepcopy(env.robot_pose)
 	cont += 1
 	goal[1] += 5
