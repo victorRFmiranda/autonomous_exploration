@@ -26,9 +26,8 @@
     </node>
 
     <!-- Frontier Detect -->
-    <!-- <node pkg="autonomous_exploration" type="frontier_lidar.py" name="Detect_frontier">
-        <remap from="/map" to="/projected_map"/>
-    </node> -->
+    <node pkg="autonomous_exploration" type="frontier_lidar.py" name="Detect_frontier">
+    </node>
 
 </launch>
 

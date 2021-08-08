@@ -155,12 +155,12 @@ def run():
 		pass
 
 	#exploration_goal=PointStamped()
-	ft_array = frontier()
+	
 
 	while not rospy.is_shutdown():
 		frontiers = compute_frontiers(width,height,resol, origem_map, mapData, robot_states)
 		# print(len(frontiers))
-
+		ft_array = frontier()
 		if(len(frontiers) > 2):
 
 			pointArray=MarkerArray()
@@ -219,7 +219,8 @@ def run():
 
 
 			# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
-			num_clusters = int(round(len(frontiers)*0.2))
+			# num_clusters = int(round(len(frontiers)*0.2))
+			num_clusters = 4
 			# print(num_clusters)
 			kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
 
