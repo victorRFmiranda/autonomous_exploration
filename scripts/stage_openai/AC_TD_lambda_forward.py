@@ -528,6 +528,7 @@ while not rospy.is_shutdown() or (espisode <= NUM_EPISODES):
 	recent_scores.append(score)
 
 	print("Score = %d" % np.array(recent_scores).mean())
+	print("Action = ", action)
 
 	#early stopping if we meet solved score goal
 	if np.array(recent_scores).mean() >= SOLVED_SCORE:
@@ -573,8 +574,8 @@ while not rospy.is_shutdown() or (espisode <= NUM_EPISODES):
 	rate.sleep()
 	
 
-torch.save(policy_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/actor.pkl')
-torch.save(stateval_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/critic.pkl')
+torch.save(policy_network, '/home/victor/ROS/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/actor.pkl')
+torch.save(stateval_network, '/home/victor/ROS/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/critic.pkl')
 
 
 

@@ -37,9 +37,9 @@ class StageEnvironment(gym.Env):
 		self.frontier = np.asarray([])
 
 
-		os.system("gnome-terminal -x roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
+		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
 		rospy.sleep(1)
-		os.system("gnome-terminal -x roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
+		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
 		rospy.sleep(1)
 
 
