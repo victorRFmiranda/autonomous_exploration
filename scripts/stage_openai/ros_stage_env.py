@@ -13,10 +13,11 @@ from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from geometry_msgs.msg import Pose, PoseStamped, Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, OccupancyGrid
 from autonomous_exploration.msg import frontier
 
 from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log
+from a_star import Astar, control
 
 
 class StageEnvironment(gym.Env):
@@ -24,7 +25,7 @@ class StageEnvironment(gym.Env):
 		self.action_space = args.num_actions		# num frontiers (fixed)
 		# self.observation_space = args.num_states
 		self.observation_space = np.asarray([])
-		self.max_actions = args.MAX_STEPS		    # num actions for epoch (how many times check all frontiers)
+		self.max_actions = args.MAX_STEPS			# num actions for epoch (how many times check all frontiers)
 		self.num_initstates = args.NUM_EPISODES 	# num start positions before change the map
 		self.maps = args.maps_gt					# vector with name of stage maps for training
 		self.map_count = 0
@@ -36,10 +37,18 @@ class StageEnvironment(gym.Env):
 		self.map = np.asarray([])
 		self.frontier = np.asarray([])
 
+		self.resol = 0
+		self.width = 0
+		self.height = 0
+		self.origem_map = [0,0]
+		self.size = [0,0]
+		self.ocupation_map = []
+		self.controlador = control()
+
 
 		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
 		rospy.sleep(1)
-		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
+		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
 		rospy.sleep(1)
 
 
@@ -47,6 +56,7 @@ class StageEnvironment(gym.Env):
 		rospy.Subscriber("/base_pose_ground_truth", Odometry, self.callback_pose)
 		rospy.Subscriber("/frontier_points", frontier, self.callback_frontier)
 		rospy.Subscriber("/map_image", Image, self.callback_image)
+		rospy.Subscriber("/map",OccupancyGrid,self.callback_map)
 		self.pub_pose = rospy.Publisher("/cmd_pose", Pose, queue_size=1)
 		self.pub_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
 
@@ -75,13 +85,17 @@ class StageEnvironment(gym.Env):
 		self.pub_pose.publish(msg_pos)
 		print("Pose reseted\n")
 
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+
+		return new_state
+
 		# Reset Gmapping
-		node = "/GMAP"
-		os.system("rosnode kill "+ node)
-		time.sleep(1)
-		os.system("gnome-terminal -x roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
-		time.sleep(1)
-		print("gmapping reseted")
+		# node = "/GMAP"
+		# os.system("rosnode kill "+ node)
+		# time.sleep(1)
+		# os.system("gnome-terminal -x roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
+		# time.sleep(1)
+		# print("gmapping reseted")
 
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
@@ -92,17 +106,44 @@ class StageEnvironment(gym.Env):
 
 
 	# move robot to the selected frontier (action)
-	'''
-	def step(self, frontier):
-		D = _dist(self.robot_pose,frontier)
-		msg = Twist()
-		while(D>0.2):
-			D = _dist(self.robot_pose,frontier)
-			v,w = _PotControl(self.robot_pose,frontier)
-			msg.linear.x = v
-			msg.angular.z = w
-			self.pub_vel.publish(msg)
-	'''
+	def follow_path(self,point):
+		start = (int(round((self.robot_pose[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((self.robot_pose[1]-self.origem_map[1]-self.resol/2.0)/self.resol)))
+		goal = (int(round((point[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((point[1]-self.origem_map[1]-self.resol/2.0)/self.resol)))
+		print("Start = ", start)
+		print("Goal = ", goal)
+		print("computing Path")
+		path = None
+		while path is None:
+			path = Astar(self.ocupation_map, start, goal)
+
+		vec_path = np.zeros((len(path),2))
+		for i in range(len(path)):
+			s = list(path[i])
+			vec_path[i,:] = list(path[i])
+			vec_path[i,0] = self.origem_map[0] + (vec_path[i,0]*self.resol + self.resol/2.0)
+			vec_path[i,1] = self.origem_map[1] + (vec_path[i,1]*self.resol + self.resol/2.0)
+
+		t_x = []
+		t_y = []
+		t_y = vec_path[:,1]
+		t_x = vec_path[:,0]
+
+		vel_msg = Twist()
+		for i in range(len(t_x)):
+			D = 1000
+			while(D > 0.1 and not rospy.is_shutdown()):
+				# D = math.sqrt((t_y[i]-robot_states[1])**2+(t_x[i]-robot_states[0])**2)
+				D = _dist([t_x[i],t_y[i]],[self.robot_pose[0],self.robot_pose[1]])
+
+				vel_msg.linear.x, vel_msg.angular.z = self.controlador.control_([t_x[i],t_y[i]],self.robot_pose)
+				self.pub_vel.publish(vel_msg)
+
+
+
+		
+
+
+
 
 	def detect_action(self,action):
 		if(action ==0):
@@ -116,7 +157,7 @@ class StageEnvironment(gym.Env):
 
 		return outp
 
-	def step(self, action):
+	def step(self, action, flag_change):
 		f_def = self.detect_action(action)
 		D = _dist(self.robot_pose,f_def)
 		D_min = 1000000
@@ -124,8 +165,10 @@ class StageEnvironment(gym.Env):
 			Ds = _dist(self.robot_pose,self.frontier[i])
 			if(Ds < D_min):
 				D_min = Ds
+				best_frontier = self.frontier[i]
 
 
+		# self.follow_path(f_def)
 		reward = self.compute_reward(D,D_min)
 
 
@@ -138,10 +181,17 @@ class StageEnvironment(gym.Env):
 
 		self.step_count += 1
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 
+		if(flag_change == True):
+			self.follow_path(best_frontier)
+			flag_change = False
+			new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+			return new_state, reward, done
 
-		return new_state, reward, done
+		else:
+			new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+
+			return new_state, reward, done
 
 
 	# compute the reward for this action
@@ -174,12 +224,24 @@ class StageEnvironment(gym.Env):
 
 	def callback_image(self, data):
 		bridge = CvBridge()
-		img = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
-		img = cv2.resize(img, (64, 64))
+		img2 = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
+		# self.ocupation_map = img2
+		img = cv2.resize(img2, (64, 64))
 		self.map = img.transpose()
 		# self.map = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
+
+	def callback_map(self, data):
+		self.resol = data.info.resolution
+		self.width = data.info.width
+		self.height = data.info.height
+		self.origem_map = [data.info.origin.position.x,data.info.origin.position.y]
+		self.size = [self.origem_map[0]+(data.info.width * self.resol),self.origem_map[1]+(data.info.height * self.resol)]
+
+		self.ocupation_map = np.asarray(data.data, dtype=np.int8).reshape(data.info.height, data.info.width)
+		self.ocupation_map = np.where(self.ocupation_map==0,0,1)
+
 
 
 

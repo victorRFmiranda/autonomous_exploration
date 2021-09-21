@@ -24,7 +24,7 @@ def conv_block(input_size, output_size):
 
 	return block
 
-
+ 
 
 
 class ConcatNetwork(nn.Module):
@@ -431,6 +431,8 @@ args = Config().parse()
 DISCOUNT_FACTOR = args.DISCOUNT_FACTOR
 #number of episodes to run
 NUM_EPISODES = args.NUM_EPISODES
+#Max number episodes to train
+MAX_EPISODES = args.TOTAL_EPISODES
 #max steps per episode
 MAX_STEPS = args.MAX_STEPS
 #device to run model on 
@@ -470,108 +472,128 @@ scores = []
 
 #recent 100 scores
 recent_scores = deque(maxlen=100)
+flag_change = False
+flag_first = True
+changed_pose = []
 
 
 rate = rospy.Rate(10)
 
 #iterate through episodes
 episode = 0
-while not rospy.is_shutdown() or (espisode <= NUM_EPISODES):
-# for episode in range(NUM_EPISODES):
-	print("Episode: %d" % episode)
-	
-	#reset environment, initiable variables
-	state = env.reset()		# reseta o ambiente e retorna o estado atual
-	trajectory = []
-	score = 0
-
-
-	# clear cuda memory
-	if torch.cuda.is_available():
-		gc.collect()
-		torch.cuda.empty_cache()
-	
-
-	#generate episode
-	for step in range(MAX_STEPS):
-
-		print("Step: %d" % step)
-		#env.render()
-		
-
-		#select action
+episode_main = 0
+while not rospy.is_shutdown() or (episode_main <= TOTAL_EPISODES):
+	if flag_first == False:
 		action, lp = select_action(policy_network, state, concat_network)
-	
-		
-		#execute action
-		# think in my case: if the actions is correct reward = 1 and done = false, else reward = 1 and done = true
-		new_state, reward, done = env.step(action)  
+		new_state, reward, done = env.step(action,flag_change) 
 
-		
-		#track episode score
-		score += reward
+		changed_pose = new_state[0]
+		flag_change = False
 
+	while not rospy.is_shutdown() or (episode <= NUM_EPISODES):
+	# for episode in range(NUM_EPISODES):
+		print("Episode: %d" % episode)
 		
-		#store into trajectory
-		trajectory.append([state, action, reward, lp])
+		#reset environment, initiable variables
+		if(flag_first):
+			state = env.reset()		# reseta o ambiente e retorna o estado atual
+		else:
+			state = env.reset_pose(changed_pose)
+
+		trajectory = []
+		score = 0
+
+
+		# clear cuda memory
+		if torch.cuda.is_available():
+			gc.collect()
+			torch.cuda.empty_cache()
 		
-		#end episode - in failure case
-		if done or score < -5	:
-			print("Done\n")
+
+		#generate episode
+		for step in range(MAX_STEPS):
+
+			print("Step: %d" % step)
+			#env.render()
+			
+
+			#select action
+			action, lp = select_action(policy_network, state, concat_network)
+		
+			
+			#execute action
+			# think in my case: if the actions is correct reward = 1 and done = false, else reward = 1 and done = true
+			new_state, reward, done = env.step(action,flag_change)  
+
+			
+			#track episode score
+			score += reward
+
+			
+			#store into trajectory
+			trajectory.append([state, action, reward, lp])
+			
+			#end episode - in failure case
+			if done or score < -5	:
+				print("Done\n")
+				break
+			
+			#move into new state
+			state = new_state
+		
+		#append score
+		scores.append(score)
+		recent_scores.append(score)
+
+		print("Score = %d" % np.array(recent_scores).mean())
+		# print("Action = ", action)
+
+		#early stopping if we meet solved score goal
+		if np.array(recent_scores).mean() >= SOLVED_SCORE:
+			flag_change = True
 			break
+
 		
-		#move into new state
-		state = new_state
-	
-	#append score
-	scores.append(score)
-	recent_scores.append(score)
+		#get items from trajectory
+		states = [step[0] for step in trajectory]
+		actions = [step[1] for step in trajectory]
+		rewards = [step[2] for step in trajectory]
+		lps = [step[3] for step in trajectory]
 
-	print("Score = %d" % np.array(recent_scores).mean())
-	print("Action = ", action)
+		#calculate state values
+		state_vals = []
+		for state in states:
+			state_v = []
+			for k in state:
+				state_v.append(torch.from_numpy(k).float().unsqueeze(0).to(DEVICE))
 
-	#early stopping if we meet solved score goal
-	if np.array(recent_scores).mean() >= SOLVED_SCORE:
-		break
-
-	
-	#get items from trajectory
-	states = [step[0] for step in trajectory]
-	actions = [step[1] for step in trajectory]
-	rewards = [step[2] for step in trajectory]
-	lps = [step[3] for step in trajectory]
-
-	#calculate state values
-	state_vals = []
-	for state in states:
-		state_v = []
-		for k in state:
-			state_v.append(torch.from_numpy(k).float().unsqueeze(0).to(DEVICE))
-
-		state = concat_network(state_v)
-		# state = state_v
-		# state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
-		# state.required_grad = True
-		state_vals.append(stateval_network(state))
-	
-	#get lambda returns for each timestep
-	#we use this lambda returns for critic and actor so CRITIC_LAMBDA is used for both
-	G = process_rewards(rewards, state_vals, CRITIC_LAMBDA)
-
-	state_vals = torch.stack(state_vals).squeeze()
-
-	
-	train_value(G, state_vals, stateval_optimizer)
+			state = concat_network(state_v)
+			# state = state_v
+			# state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
+			# state.required_grad = True
+			state_vals.append(stateval_network(state))
 		
-	#calculate TD lambda for actor
-	deltas = [gt - val for gt, val in zip(G, state_vals)]
-	deltas = torch.tensor(deltas).to(DEVICE)
-	
-	train_policy(deltas, lps, policy_optimizer)
+		#get lambda returns for each timestep
+		#we use this lambda returns for critic and actor so CRITIC_LAMBDA is used for both
+		G = process_rewards(rewards, state_vals, CRITIC_LAMBDA)
 
-	episode += 1
+		state_vals = torch.stack(state_vals).squeeze()
 
-	rate.sleep()
+		
+		train_value(G, state_vals, stateval_optimizer)
+			
+		#calculate TD lambda for actor
+		deltas = [gt - val for gt, val in zip(G, state_vals)]
+		deltas = torch.tensor(deltas).to(DEVICE)
+		
+		train_policy(deltas, lps, policy_optimizer)
+
+		episode += 1
+
+		rate.sleep()
+
+	flag_first = False
+	episode_main += 1
 	
 
 torch.save(policy_network, '/home/victor/ROS/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/actor.pkl')
