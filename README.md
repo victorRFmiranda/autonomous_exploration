@@ -31,7 +31,7 @@ The main code is located in:
 
 Other auxiliary codes are:
 
-Path Planner: `/scripts/stage_openai/a_star.py`
+Path Planner: `/scripts/stage_openai/a_star.py`\\
 DRL Configuration File: `/scripts/stage_openai/config.py`
 Training Environment: `/scripts/stage_openai/ros_stage_env.py`
 Frontier Detection Algorithm: `/scripts/frontier/frontier_lidar.py`
