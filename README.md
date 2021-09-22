@@ -1,1 +1,6 @@
-# autnomous_exploration
+# Deep Reinforcement Learning for Autnomous exploration
+
+
+# Dependencies
+
+
