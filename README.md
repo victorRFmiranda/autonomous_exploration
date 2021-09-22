@@ -12,4 +12,14 @@ $ sudo apt install ros-"your ros distro"-map-server
 ```
 
 
+### Building Package
+
+Install this package on your catking workspace:
+
+```
+$ cd ~/catkin_ws/src/
+$ git clone https://https://github.com/victorRFmiranda/autonomous_exploration.git
+$ cd ..
+$ catkin_make ## or catkin build
+```
 
