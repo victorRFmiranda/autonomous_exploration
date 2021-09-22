@@ -39,6 +39,7 @@ Training Environment: `/scripts/stage_openai/ros_stage_env.py`
 
 Frontier Detection Algorithm: `/scripts/frontier/frontier_lidar.py`
 
+### How to run
 
 In order to start the training, run the following codes in two different terminal windows:
 
