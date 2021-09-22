@@ -14,12 +14,26 @@ $ sudo apt install ros-"your ros distro"-map-server
 
 ### Building Package
 
-Install this package on your catking workspace:
+Install this package and the modified version of ROS Stage simulator on your catking workspace:
 
 ```
 $ cd ~/catkin_ws/src/
-$ git clone https://https://github.com/victorRFmiranda/autonomous_exploration.git
+$ git clone https://github.com/victorRFmiranda/autonomous_exploration.git
+$ git clone https://github.com/victorRFmiranda/stage_ros.git
 $ cd ..
 $ catkin_make ## or catkin build
 ```
 
+### Main CODE
+
+In order to start the training, run the following codes in two different terminal windows:
+
+First:
+```
+$ roscore
+```
+
+Second:
+```
+$ rosrun autonomous_exploration AC_TD_lambda_forward.py
+```
