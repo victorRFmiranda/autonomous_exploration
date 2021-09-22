@@ -11,6 +11,12 @@ $ sudo apt install ros-"your ros distro"-gmapping
 $ sudo apt install ros-"your ros distro"-map-server
 ```
 
+### Python Dependencies
+```
+Numpy
+Pytorch
+```
+
 
 ### Building Package
 
