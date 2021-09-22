@@ -26,6 +26,8 @@ $ catkin_make ## or catkin build
 
 ### Main CODE
 
+The main code is located in: /scripts/stage_openai/AC_TD_lambda_forward.py
+
 In order to start the training, run the following codes in two different terminal windows:
 
 First:
