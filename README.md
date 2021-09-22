@@ -28,11 +28,13 @@ $ catkin_make ## or catkin build
 
 The main code is located in:
 `/scripts/stage_openai/AC_TD_lambda_forward.py`
+
 Other auxiliary codes are:
-`/scripts/stage_openai/a_star.py`
-`/scripts/stage_openai/config.py`
-`/scripts/stage_openai/ros_stage_env.py`
-`/scripts/frontier/frontier_lidar.py`
+
+Path Planner: `/scripts/stage_openai/a_star.py`
+DRL Configuration File: `/scripts/stage_openai/config.py`
+Training Environment: `/scripts/stage_openai/ros_stage_env.py`
+Frontier Detection Algorithm: `/scripts/frontier/frontier_lidar.py`
 
 In order to start the training, run the following codes in two different terminal windows:
 
