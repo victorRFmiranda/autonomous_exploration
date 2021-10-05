@@ -182,7 +182,7 @@ def dist(p1,p2):
 class control:
     def __init__(self):
         self.d = 0.1
-        self.k = 2
+        self.k = 1
 
     def control_(self,pos_curve, robot_states):
 

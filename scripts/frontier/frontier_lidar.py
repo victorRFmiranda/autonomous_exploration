@@ -76,7 +76,14 @@ def compute_frontiers(width,height,resol,origem_map,mapData, robot_states):
 				if(i>0 and i < width-1 and j>0 and j < height-1):
 					s = np.array([mapData.data[j*width + i+1], mapData.data[j*width + i-1], mapData.data[(j-1)*width + i], mapData.data[(j+1)*width + i]
 							, mapData.data[(j-1)*width + i+1], mapData.data[(j+1)*width + i+1], mapData.data[(j-1)*width + i-1], mapData.data[(j+1)*width + i-1]])
-					if( (len(np.where(s==-1)[0]) == 3) and (len(np.where(s==100)[0])<=0)):
+
+					s1 = np.array([mapData.data[(j+2)*width + i-2],mapData.data[(j+2)*width + i-1],mapData.data[(j+2)*width + i],mapData.data[(j+2)*width + i+1],mapData.data[(j+2)*width + i+2],
+								mapData.data[(j+1)*width + i-2],mapData.data[(j+1)*width + i-1],mapData.data[(j+1)*width + i],mapData.data[(j+1)*width + i+1],mapData.data[(j+1)*width + i+2],
+								mapData.data[(j)*width + i-2],mapData.data[(j)*width + i-1],mapData.data[(j)*width + i],mapData.data[(j)*width + i+1],mapData.data[(j)*width + i+2],
+								mapData.data[(j-1)*width + i-2],mapData.data[(j-1)*width + i-1],mapData.data[(j-1)*width + i],mapData.data[(j-1)*width + i+1],mapData.data[(j-1)*width + i+2],
+								mapData.data[(j-2)*width + i-2],mapData.data[(j-2)*width + i-1],mapData.data[(j-2)*width + i],mapData.data[(j-2)*width + i+1],mapData.data[(j-2)*width + i-2]]
+						)
+					if( (len(np.where(s==-1)[0]) >= 3) and (len(np.where(s1==100)[0])<=0)):
 						x = origem_map[0] + (i * resol + resol/2.0)
 						y = origem_map[1] + (j * resol + resol/2.0)
 						theta_s = atan2( (y - robot_states[1]), (x - robot_states[0]))

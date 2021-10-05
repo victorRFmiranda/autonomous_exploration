@@ -10,7 +10,7 @@ class Config():
         parser.add_argument('--MAX_STEPS', type=int, default=500, help='num steps for episode)')
         parser.add_argument('--NUM_EPISODES', type=int, default=500, help='num episodes')
         parser.add_argument('--TOTAL_EPISODES', type=int, default=500, help='Total episodes')
-        parser.add_argument('--maps_gt', default=["map1","map1"], help='vector with name of stage maps for training')
+        parser.add_argument('--maps_gt', default=["map2","map1"], help='vector with name of stage maps for training')
 
         parser.add_argument('--DISCOUNT_FACTOR', default=0.8, help='vector with name of stage maps for training')
         parser.add_argument('--SOLVED_SCORE', default=30, help='vector with name of stage maps for training')

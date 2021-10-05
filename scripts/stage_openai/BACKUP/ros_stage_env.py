@@ -14,15 +14,10 @@ from geometry_msgs.msg import Pose, PoseStamped, Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry, OccupancyGrid
-import matplotlib.pyplot as plt
+from autonomous_exploration.msg import frontier
 
 from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log
-
-from autonomous_exploration.msg import frontier
-# from a_star import Astar, control
-from rrtStar import RRTStar, control, compute_obstacles
-# from rrtStar import compute_obstacles
-from rrt import RRT
+from a_star import Astar, control
 
 
 class StageEnvironment(gym.Env):
@@ -48,13 +43,12 @@ class StageEnvironment(gym.Env):
 		self.origem_map = [0,0]
 		self.size = [0,0]
 		self.ocupation_map = []
-		self.occ_map = OccupancyGrid()
 		self.controlador = control()
 
 
 		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
 		rospy.sleep(1)
-		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world")
+		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
 		rospy.sleep(1)
 
 
@@ -113,39 +107,6 @@ class StageEnvironment(gym.Env):
 
 	# move robot to the selected frontier (action)
 	def follow_path(self,point):
-		start = ((self.robot_pose[0]),(self.robot_pose[1]), (self.robot_pose[2]))
-		obstacle_list = compute_obstacles(self.width,self.height,self.resol,self.origem_map,self.occ_map)
-		goal = ((point[0]),(point[1]))
-		# rrt_path = RRTStar(start=start,goal=goal,map_size=[self.origem_map,self.size],resol_map = self.resol, occupancy_map = self.occ_map, obstacle_list=obstacle_list,max_iter=10000,step_size = 2.0, dt=0.1)
-		rrt_path = RRT(start=start,goal=goal,map_size=self.size,obstacle_list=obstacle_list,step_size=2.0,path_frac=0.2,max_iter=10000)
-		print("Start = ", start)
-		print("Goal = ", goal)
-		print("computing Path")
-		path = rrt_path.planning()
-		if path is None:
-			print("Path not found!")
-			rrt_path.draw_graph()
-			plt.show()
-		else:
-			new_traj = np.zeros((len(path),2))
-			j = 0
-			for i in range(len(path)-1,-1,-1):
-				new_traj[j,0] = path[i][0]
-				new_traj[j,1] = path[i][1]
-				j+=1
-
-			vel_msg = Twist()
-			for i in range(len(new_traj)):
-				D = 1000
-				while(D > 0.1 and not rospy.is_shutdown()):
-					D = _dist([new_traj[i,0],new_traj[i,1]],[self.robot_pose[0],self.robot_pose[1]])
-					vel_msg.linear.x, vel_msg.angular.z = self.controlador.control_([new_traj[i,0],new_traj[i,1]],self.robot_pose)
-					self.pub_vel.publish(vel_msg)
-
-			rospy.sleep(5)
-
-	'''
-	def follow_path(self,point):
 		start = (int(round((self.robot_pose[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((self.robot_pose[1]-self.origem_map[1]-self.resol/2.0)/self.resol)))
 		goal = (int(round((point[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((point[1]-self.origem_map[1]-self.resol/2.0)/self.resol)))
 		print("Start = ", start)
@@ -178,7 +139,6 @@ class StageEnvironment(gym.Env):
 				self.pub_vel.publish(vel_msg)
 
 		rospy.sleep(4)
-		'''
 
 
 
@@ -275,7 +235,6 @@ class StageEnvironment(gym.Env):
 		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
 
 	def callback_map(self, data):
-		self.occ_map = data
 		self.resol = data.info.resolution
 		self.width = data.info.width
 		self.height = data.info.height

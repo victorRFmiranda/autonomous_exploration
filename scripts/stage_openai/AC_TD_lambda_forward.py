@@ -436,7 +436,8 @@ MAX_EPISODES = args.TOTAL_EPISODES
 #max steps per episode
 MAX_STEPS = args.MAX_STEPS
 #device to run model on 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cpu"
 
 if torch.cuda.is_available():
 	gc.collect()
