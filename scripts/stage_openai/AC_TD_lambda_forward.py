@@ -535,7 +535,8 @@ while not rospy.is_shutdown() or (episode_main <= TOTAL_EPISODES):
 			trajectory.append([state, action, reward, lp])
 			
 			#end episode - in failure case
-			if done or score < -5	:
+			# if done or score < -5	:
+			if done and step > 0:
 				print("Done\n")
 				break
 			
@@ -551,7 +552,8 @@ while not rospy.is_shutdown() or (episode_main <= TOTAL_EPISODES):
 
 		#early stopping if we meet solved score goal
 		if np.array(recent_scores).mean() >= SOLVED_SCORE:
-			flag_change = True
+			if(step > 100):
+				flag_change = True
 			break
 
 		

@@ -23,7 +23,7 @@
         <param name="ymax" value="$(arg ymax)"/>
         <param name="delta" value="$(arg delta)" />
         <param name="odom_frame" value="$(arg odom_frame)" />
-        <param name="map_update_interval" value="0.5"/>
+        <param name="map_update_interval" value="0.3"/>
     </node>
 
     <!-- Frontier Detect -->
