@@ -224,20 +224,20 @@ class StageEnvironment(gym.Env):
 	def step(self, action, flag_change):
 		f_def = self.detect_action(action)
 		D = _dist(self.robot_pose,f_def)
-		# D_min = 1000000
-		D_max = 0
+		D_min = 1000000
+		# D_max = 0
 		for i in range(len(self.frontier)):
 			Ds = _dist(self.robot_pose,self.frontier[i])
-			# if(Ds < D_min):
-			if(Ds > D_max):
-				# D_min = Ds
-				D_max = Ds
+			if(Ds < D_min):
+			# if(Ds > D_max):
+				D_min = Ds
+				# D_max = Ds
 				best_frontier = self.frontier[i]
 
 
 		# self.follow_path(f_def)
-		# reward = self.compute_reward(D,D_min)
-		reward = self.compute_reward(D,D_max)
+		reward = self.compute_reward(D,D_min)
+		# reward = self.compute_reward(D,D_max)
 
 
 		if(self.step_count >= self.max_actions):
@@ -265,12 +265,12 @@ class StageEnvironment(gym.Env):
 	# compute the reward for this action
 	def compute_reward(self,D,D_min):
 
-		# if (D <= D_min):
-		if (D < D_min):
-			re = -2
+		if (D <= D_min):
+		# if (D < D_min):
+			re = 1
 			# done = False
 		else:
-			re = 1
+			re = -1
 			# done = True
 
 		return re
@@ -364,7 +364,7 @@ def pot_att(x,y,px,py):
 
 def pot_rep(theta_n, D, alfa):
 	K = 2.0
-	D_safe = 1.0
+	D_safe = 2.0
 
 	if( D > D_safe):
 		Ux = 0

@@ -556,6 +556,25 @@ while not rospy.is_shutdown() or (episode_main <= TOTAL_EPISODES):
 				flag_change = True
 			break
 
+		if (np.array(recent_scores).mean() < -400):
+			#Init network
+			policy_network = PolicyNetwork(env.observation_space.shape[0], env.action_space).to(DEVICE)
+			stateval_network = StateValueNetwork(env.observation_space.shape[0]).to(DEVICE)
+			concat_network = ConcatNetwork().to(DEVICE)
+
+			#Init optimizer
+			policy_optimizer = optim.Adam(policy_network.parameters(), lr=1e-2)
+			stateval_optimizer = optim.Adam(stateval_network.parameters(), lr=1e-2)
+
+			#track scores
+			scores = []
+
+			#recent 100 scores
+			recent_scores = deque(maxlen=100)
+			#iterate through episodes
+			episode = 0
+			episode_main = 0
+
 		
 		#get items from trajectory
 		states = [step[0] for step in trajectory]
