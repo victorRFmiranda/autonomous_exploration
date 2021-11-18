@@ -1,0 +1,23 @@
+# parameters for the espeleo_control package
+# default values
+
+feedback_linearization:
+    d_feedback: 0.15
+
+vector_field:
+    is_forward_motion: True # flag to invert the motion of the espeleorobo (move backwards or forward)
+    v_r: 0.8 # reference forward speed for the espeleorobo
+    k_f: 5.0 # convergence gain of the vector field
+
+robot_pose:
+    pose_topic_name: base_pose_ground_truth # name of the topic in which the pose will be obtained
+    pose_topic_type: Odometry # Options: 'TFMessage', 'Pose' or 'Odometry'
+
+robot_cmd:
+    cmd_vel_topic_name: cmd_vel # name of the topic in which the forward and angular velocities will be published
+
+obstacle_avoidance:
+    flag_follow_obstacle: False # flag to enable the robot to follow an obstacle when it s blocking the vector field
+    epsilon: 1.0 # reference distance between the robot and the path being followed
+    switch_dist: 1.4 # distance from which the robot will start to follow the obstacle
+    obstacle_point_topic_name: /closest_point # name of the topic in which the laser data will be obtained

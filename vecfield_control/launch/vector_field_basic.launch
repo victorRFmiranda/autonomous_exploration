@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find vecfield_control)/config/general.config"/>
+    <!-- Run the node that controls the robot with vector fields -->
+    <node pkg="vecfield_control" name="vecfield_control" type="vec_field_control_basic.py" args="" output="screen">
+        <rosparam command="load" file="$(find vecfield_control)/config/control_params.yaml" />
+    </node>
+
+    <!-- Run rviz for visualization -->
+    <!--node pkg = "rviz" name = "rviz" type = "rviz" args="-d $(find espeleo_control)/rviz/config.rviz" output="screen">
+    </node-->
+
+    <!-- Static trasform between laser and base_link-->
+<!--     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.2 0 0.2 0 0 0 1 base_link laser 110" /> -->
+</launch>
