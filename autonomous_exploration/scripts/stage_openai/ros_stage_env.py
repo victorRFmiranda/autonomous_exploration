@@ -26,7 +26,7 @@ from rrtStar import RRTStar, control, compute_obstacles
 # from new_aStar import A_Star, control
 from astar_start_end import searching_control
 from dijkstra import Dijkstra
-from espeleo_control.msg import Path
+from vecfield_control.msg import Path
 
 
 class StageEnvironment(gym.Env):
@@ -103,7 +103,7 @@ class StageEnvironment(gym.Env):
 	def reset_pose(self, data):
 
 		# KIll Control
-		node = "/espeleo_control"
+		node = "/vecfield_control"
 		os.system("rosnode kill "+ node)
 		rospy.sleep(2)
 
