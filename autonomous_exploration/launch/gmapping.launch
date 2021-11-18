@@ -32,7 +32,7 @@
 
 
     <!--- Vector Field -->
-    <include file="$(find espeleo_control)/launch/vector_field_basic.launch" />
+    <include file="$(find vecfield_control)/launch/vector_field_basic.launch" />
 
 </launch>
 

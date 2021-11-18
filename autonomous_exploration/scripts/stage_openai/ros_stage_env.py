@@ -26,7 +26,7 @@ from rrtStar import RRTStar, control, compute_obstacles
 # from new_aStar import A_Star, control
 from astar_start_end import searching_control
 from dijkstra import Dijkstra
-from espeleo_control.msg import Path
+from vecfield_control.msg import Path
 
 
 class StageEnvironment(gym.Env):
