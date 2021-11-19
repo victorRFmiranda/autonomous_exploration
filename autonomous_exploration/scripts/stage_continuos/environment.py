@@ -243,10 +243,13 @@ class StageEnvironment(gym.Env):
 
 	def callback_image(self, data):
 		bridge = CvBridge()
-		img2 = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
-		# self.ocupation_map = img2
+		# img2 = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
+		img2 = bridge.imgmsg_to_cv2(data, desired_encoding='mono16')
 		img = cv2.resize(img2, (64, 64))
-		self.map = img.transpose()
+		img = img.transpose()
+		img = img/255.0
+		img = img.astype('float32')
+		self.map = np.asarray([img])
 		# self.map = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
