@@ -31,57 +31,18 @@ class ConcatNetwork(nn.Module):
 	def __init__(self):
 		super(ConcatNetwork, self).__init__()
 		# test convolution
-		self.conv1 = conv_block(3, 16)
-		self.conv2 = conv_block(16, 32)
-		# self.conv3 = conv_block(32, 64)
-		#self.ln1 = nn.Linear(64 * 58 * 58, 16)
-		self.ln1 = nn.Linear(32 * 14 * 14, 16)
-		self.relu = nn.ReLU()
-		self.batchnorm = nn.BatchNorm1d(16)
-		self.dropout = nn.Dropout2d(0.5)
-		self.ln2 = nn.Linear(16, 1)
+		self.conv1 = conv_block(1, 4)
+		self.ln1 = nn.Linear(4 * 16 * 16, 32)
 
-		self.p1 = nn.Linear(3, 2)
-		self.p2 = nn.Linear(2, 2)
-		self.p3 = nn.Linear(2, 1)
-
-		self.f1 = nn.Linear(2, 4)
-		self.f2 = nn.Linear(4, 4)
-		self.f3 = nn.Linear(16, 1)
-
-		self.last = nn.Linear(3,3)
 
 	def forward(self, x):
-		# mlp pose
-		x[0] = self.p1(x[0])
-		x[0] = self.relu(x[0])
-		x[0] = self.p2(x[0])
-		x[0] = self.relu(x[0])
-		x[0] = self.p3(x[0])
-		x[0] = self.relu(x[0])
-		# mlp frontiers
-		x[1] = self.f1(x[1])
-		x[1] = self.relu(x[1])
-		x[1] = self.f2(x[1])
-		x[1] = self.relu(x[1])
-		x[1] = x[1].reshape(x[1].shape[0], -1)
-		x[1] = self.f3(x[1])
-		x[1] = self.relu(x[1])
+
 		# conv image
 		x[2] = self.conv1(x[2])
-		x[2] = self.conv2(x[2])
-		x[2] = x[2].reshape(x[2].shape[0], -1)
+		x[2] = x[2].view(x[2].size(0), -1)
 		x[2] = self.ln1(x[2])
-		x[2] = self.relu(x[2])
-		x[2] = self.dropout(x[2])
-		x[2] = self.ln2(x[2])
-		x[2] = self.relu(x[2])
-
 
 		x = torch.cat((x[0], x[1], x[2]), dim=1)
-
-
-		x = self.last(x)
 
 		return x
 
