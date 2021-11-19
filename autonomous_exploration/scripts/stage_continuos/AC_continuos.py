@@ -14,7 +14,7 @@ import gym
 import numpy as np
 from collections import deque
  
-
+ 
 
 def conv_block(input_size, output_size):
 	block = nn.Sequential(
@@ -37,7 +37,7 @@ class ConcatNetwork(nn.Module):
 
 	def forward(self, x):
 
-		x[1] = x[1].view(x[1].size(0), -1)
+		#x[1] = x[1].view(x[1].size(0), -1)
 
 		# conv image
 		x[2] = self.conv1(x[2])
@@ -61,7 +61,7 @@ class Actor(nn.Module):
 	
 	#Takes in observations and outputs actions
 	def __init__(self, observation_space, action_space):
-		observation_space = 43
+		observation_space = 37
 		# observation_space -> quantidade de estados
 		# action_space -> quantidade de acoes
 		
@@ -108,7 +108,7 @@ class Critic(nn.Module):
 	#Takes in state
 	def __init__(self, observation_space):
 		super(Critic, self).__init__()
-		observation_space = 43
+		observation_space = 37
 		# observation_space -> quantidade de estados
 		# 128 neuronios na camada escondida
 		

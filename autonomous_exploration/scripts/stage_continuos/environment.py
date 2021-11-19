@@ -35,6 +35,7 @@ class StageEnvironment(gym.Env):
 
 		self.init_pose = [-20.0, -20.0, 0.0]		# x, y, theta  -- Came from a parameters ?
 		self.robot_pose = [0.0, 0.0, 0.0]			# x, y, theta
+		self.robot_vel = [0.0,0.0]					# v, w
 		self.f_points = []
 		self.step_count = 0
 		self.map = np.asarray([])
@@ -129,7 +130,7 @@ class StageEnvironment(gym.Env):
 		print("gmapping reseted")
 		rospy.sleep(5)
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
 
 		return new_state
 
@@ -138,7 +139,7 @@ class StageEnvironment(gym.Env):
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
 
 		return new_state
 
@@ -205,7 +206,7 @@ class StageEnvironment(gym.Env):
 		self.step_count += 1
 
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
 
 		return new_state, reward, done
 
@@ -233,6 +234,9 @@ class StageEnvironment(gym.Env):
 		self.robot_pose[2] = angles[2]
 		self.robot_pose = np.asarray(self.robot_pose)
 
+		self.robot_vel[0] = data.twist.twist.linear.x
+		self.robot_vel[1] = data.twist.twist.angular.z
+
 	def callback_frontier(self, data):
 		self.frontier = []
 		for i in range(len(data.clusters)):
@@ -252,7 +256,7 @@ class StageEnvironment(gym.Env):
 		self.map = np.asarray([img])
 		# self.map = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
+		self.observation_space = np.array([self.robot_pose,self.robot_vel,self.map])
 
 	def callback_map(self, data):
 		self.occ_map = data
