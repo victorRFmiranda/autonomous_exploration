@@ -103,7 +103,7 @@ class StageEnvironment(gym.Env):
 	def reset_pose(self, data):
 
 		# KIll Control
-		node = "/espeleo_control"
+		node = "/vecfield_control"
 		os.system("rosnode kill "+ node)
 		rospy.sleep(2)
 
@@ -369,8 +369,6 @@ class StageEnvironment(gym.Env):
 
 
 
-
-
 	def detect_action(self,action):
 		if(action ==0):
 			outp = self.frontier[0]
@@ -383,37 +381,29 @@ class StageEnvironment(gym.Env):
 
 		return outp
 
+
 	def step(self, action):
 		f_def = self.detect_action(action)
 
-
 		D = _dist(self.robot_pose,f_def)
-		D_min = 1000000
-		D_max = 0
-		for i in range(len(self.frontier)):
-			Ds = _dist(self.robot_pose,self.frontier[i])
-			if(Ds < D_min):
-				D_min = Ds
-				best_frontier = self.frontier[i]
-			if(Ds > D_max):
-				D_max = Ds
-
 
 
 		map_before = self.freeMap_size
+		pose_before = self.robot_pose[0:2]
+
 		# Path planning and follow
 		self.follow_path(f_def)
 
 		# compute distance
 
+
 		map_after = self.freeMap_size
 		map_gain = map_after - map_before
 
-		reward = self.compute_reward(D,D_min,D_max, map_gain)
-		# reward = self.compute_reward(D,D_max)
+		reward = self.compute_reward(D, map_gain)
 
 
-		if(self.step_count >= self.max_actions or reward == -1):
+		if(self.step_count >= self.max_actions or reward == 0):
 			done = True
 			self.step_count = 0
 		else:
@@ -429,16 +419,17 @@ class StageEnvironment(gym.Env):
 
 
 	# compute the reward for this action
-	def compute_reward(self,D,D_min,D_max, map_gain):
+	def compute_reward(self,D, map_gain):
 
 		if(self.crash == 0):
-			dist_reward = ((-1.0*(float(D-D_min)/float(D_max-D_min)))+0.5)
-			map_reward = float(map_gain) #/float(self.freeMap_size)
-			re = dist_reward + map_reward
-			# re = 0.01*map_reward
+			map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+			re = D + map_reward
+
+			print("Map Reward = %f" % map_reward)
+			print("Distance Reward = %f" % D)
 
 		else:
-			re = -1
+			re = 0
 
 		return re
 
@@ -461,11 +452,21 @@ class StageEnvironment(gym.Env):
 
 	def callback_image(self, data):
 		bridge = CvBridge()
+		# img2 = bridge.imgmsg_to_cv2(data, desired_encoding='mono16')
 		img2 = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
-		# self.ocupation_map = img2
-		img = cv2.resize(img2, (64, 64))
-		self.map = img.transpose()
-		# self.map = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+		img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+		# np.savetxt('normal.txt', img2, delimiter=',')
+		# print("\nNormal\n\n")
+		# print(img2)
+		img = cv2.resize(img2, (64, 64),interpolation=cv2.INTER_NEAREST)
+		# print("\n\nRESIZED\n\n")
+		# print(img)
+		# np.savetxt('resized.txt', img2, delimiter=',')
+		img = img.transpose()
+		img = img/255.0
+		img = img.astype('float32')
+		
+		self.map = np.asarray([img])
 
 		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
 

@@ -4,14 +4,13 @@
 """Basic node to perform navigation control using topics (publishers subscribers)
     Authors:
         Adriano M. C. Rezende, <adrianomcr18@gmail.com>
-	Victor R. F. Miranda, <victormrfm@ufmg.br>
         Hector Azpurua <hector.azpurua@itv.org>
+	Victor R. F. Miranda <victormrfm@ufmg.br>
 """
 
 import rospy
 
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Int32
 import vecfield_control.msg
 
 from vector_field_control import rviz_helper, vec_field_node
@@ -32,7 +31,6 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
     def run(self):
         """Execute the controller loop
         """
-        flag_special = Int32()
         vel = Twist()
         rate = rospy.Rate(self.freq)
         rate_slow = rospy.Rate(self.freq_slow)
@@ -53,9 +51,6 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
 
             linear_vel_x, angular_vel_z, Vx_ref, Vy_ref, reached_endpoint, reached_percentage = \
                 self.vec_field_obj.run_one_cycle()
-
-            flag_special.data = reached_percentage
-            self.pub_end.publish(flag_special)
 
             if int(reached_percentage) != int(prev_percentage) and (int(reached_percentage) % 5) == 0:
                 prev_percentage = reached_percentage

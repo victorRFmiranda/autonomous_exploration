@@ -21,7 +21,7 @@ from sklearn.cluster import DBSCAN, KMeans
 import cv2
 
 
-
+ 
 
 
 # global variables
@@ -124,15 +124,17 @@ def create_image(mapa, centers):
 	image = np.zeros((h,w,3)).astype(np.uint8)
 	for i in range(0,h):
 		for j in range(0,w):
-			if(matrix[i*w+j] == 100):
+			if(matrix[i*w+j] == 100):			# occupied
 				image[i,j] = [0,0,0]
-			elif(matrix[i*w+j] == -1):
-				image[i,j] = [192,192,192]
-			elif(matrix[i*w+j] == 0):
+				map_increse += 1
+				
+			elif(matrix[i*w+j] == 0):			# free
 				image[i,j] = [255,255,255]
 				map_increse += 1
-			elif(matrix[i*w+j] == -100):
-				image[i,j] = [255,0,0]
+
+			elif(matrix[i*w+j] == -1):			# Unknow
+				image[i,j] = [192,192,192]
+				
 
 	
 

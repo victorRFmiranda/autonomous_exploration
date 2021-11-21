@@ -97,7 +97,7 @@ class StageEnvironment(gym.Env):
 	def reset_pose(self, data):
 
 		# KIll Control
-		node = "/espeleo_control"
+		node = "/vecfield_control"
 		os.system("rosnode kill "+ node)
 		rospy.sleep(2)
 
@@ -130,7 +130,7 @@ class StageEnvironment(gym.Env):
 		print("gmapping reseted")
 		rospy.sleep(5)
 
-		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 
 		return new_state
 
@@ -139,7 +139,7 @@ class StageEnvironment(gym.Env):
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
 
-		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 
 		return new_state
 
@@ -147,7 +147,6 @@ class StageEnvironment(gym.Env):
 	
 	# Dijkstra
 	def follow_path(self,point):
-		print("AA\n")
 		print(point)
 		
 
@@ -206,7 +205,7 @@ class StageEnvironment(gym.Env):
 		self.step_count += 1
 
 
-		new_state = np.asarray([self.robot_pose, self.robot_vel, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 
 		return new_state, reward, done
 
@@ -256,7 +255,7 @@ class StageEnvironment(gym.Env):
 		self.map = np.asarray([img])
 		# self.map = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-		self.observation_space = np.array([self.robot_pose,self.robot_vel,self.map])
+		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
 
 	def callback_map(self, data):
 		self.occ_map = data

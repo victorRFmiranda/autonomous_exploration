@@ -5,6 +5,7 @@
     Authors:
         Adriano M. C. Rezende, <adrianomcr18@gmail.com>
         Hector Azpurua <hector.azpurua@itv.org>
+	Victor R. F. Miranda <victormrfm@ufmg.br>
 """
 
 import rospy
@@ -14,7 +15,6 @@ from tf.transformations import euler_from_quaternion
 from tf2_msgs.msg import TFMessage
 from visualization_msgs.msg import Marker, MarkerArray
 from math import cos, sin
-from std_msgs.msg import Int32
 
 import rviz_helper
 import vec_field_controller
@@ -68,23 +68,22 @@ class VecFieldNode(object):
         rospy.init_node("vec_field_node")
 
         # parameters (description in yaml file)
-        self.v_r = float(rospy.get_param("/espeleo_control/vector_field/v_r", 1.0))
-        self.k_f = float(rospy.get_param("/espeleo_control/vector_field/k_f", 5.0))
-        self.is_forward_motion = rospy.get_param("/espeleo_control/vector_field/is_forward_motion", True)
-        self.d_feedback = float(rospy.get_param("/espeleo_control/feedback_linearization/d_feedback", 0.2))
+        self.v_r = float(rospy.get_param("/vecfield_control/vector_field/v_r", 1.0))
+        self.k_f = float(rospy.get_param("/vecfield_control/vector_field/k_f", 5.0))
+        self.is_forward_motion = rospy.get_param("/vecfield_control/vector_field/is_forward_motion", True)
+        self.d_feedback = float(rospy.get_param("/vecfield_control/feedback_linearization/d_feedback", 0.2))
 
-        self.pose_topic_name = rospy.get_param("/espeleo_control/robot_pose/pose_topic_name", "tf")
-        self.pose_topic_type = rospy.get_param("/espeleo_control/robot_pose/pose_topic_type", "TFMessage")
-        self.cmd_vel_topic_name = rospy.get_param("/espeleo_control/robot_cmd/cmd_vel_topic_name", "cmd_vel")
+        self.pose_topic_name = rospy.get_param("/vecfield_control/robot_pose/pose_topic_name", "tf")
+        self.pose_topic_type = rospy.get_param("/vecfield_control/robot_pose/pose_topic_type", "TFMessage")
+        self.cmd_vel_topic_name = rospy.get_param("/vecfield_control/robot_cmd/cmd_vel_topic_name", "cmd_vel")
 
-        self.flag_follow_obstacle = rospy.get_param("/espeleo_control/obstacle_avoidance/flag_follow_obstacle", False)
-        self.epsilon = rospy.get_param("/espeleo_control/obstacle_avoidance/epsilon", 0.5)
-        self.switch_dist = rospy.get_param("/espeleo_control/obstacle_avoidance/switch_dist", 1.0)
-        self.obstacle_point_topic_name = rospy.get_param("/espeleo_control/obstacle_avoidance/obstacle_point_topic_name",
+        self.flag_follow_obstacle = rospy.get_param("/vecfield_control/obstacle_avoidance/flag_follow_obstacle", False)
+        self.epsilon = rospy.get_param("/vecfield_control/obstacle_avoidance/epsilon", 0.5)
+        self.switch_dist = rospy.get_param("/vecfield_control/obstacle_avoidance/switch_dist", 1.0)
+        self.obstacle_point_topic_name = rospy.get_param("/vecfield_control/obstacle_avoidance/obstacle_point_topic_name",
                                                          "/closest_obstacle_point")
 
         # publishers
-        self.pub_end = rospy.Publisher("/reached_endpoint", Int32, queue_size=1)
         self.pub_cmd_vel = rospy.Publisher(self.cmd_vel_topic_name, Twist, queue_size=1)
         self.pub_rviz_ref = rospy.Publisher("/visualization_ref_vel", Marker, queue_size=1)
         self.pub_rviz_curve = rospy.Publisher("/visualization_trajectory", MarkerArray, queue_size=1)

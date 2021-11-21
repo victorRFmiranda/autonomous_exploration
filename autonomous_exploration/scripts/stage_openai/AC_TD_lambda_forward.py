@@ -3,6 +3,7 @@
 import rospy
 from config import Config
 from ros_stage_env import StageEnvironment
+import rospkg
 
 import torch, gc
 import torch.nn as nn
@@ -10,20 +11,19 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
-import gym
 import numpy as np
 from collections import deque
-
+ 
 
 
 
 def conv_block(input_size, output_size):
 	block = nn.Sequential(
-		nn.Conv2d(input_size, output_size, (3, 3)), nn.ReLU(), nn.BatchNorm2d(output_size), nn.MaxPool2d((2, 2)),
+		nn.Conv2d(input_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
+		nn.Conv2d(output_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
 	)
 
 	return block
-
  
 
 
@@ -31,61 +31,23 @@ class ConcatNetwork(nn.Module):
 	def __init__(self):
 		super(ConcatNetwork, self).__init__()
 		# test convolution
-		self.conv1 = conv_block(3, 16)
-		self.conv2 = conv_block(16, 32)
-		# self.conv3 = conv_block(32, 64)
-		#self.ln1 = nn.Linear(64 * 58 * 58, 16)
-		self.ln1 = nn.Linear(32 * 14 * 14, 16)
-		self.relu = nn.ReLU()
-		self.batchnorm = nn.BatchNorm1d(16)
-		self.dropout = nn.Dropout2d(0.5)
-		self.ln2 = nn.Linear(16, 1)
+		self.conv1 = conv_block(1, 4)
+		self.ln1 = nn.Linear(4 * 16 * 16, 32)
 
-		self.p1 = nn.Linear(3, 2)
-		self.p2 = nn.Linear(2, 2)
-		self.p3 = nn.Linear(2, 1)
-
-		self.f1 = nn.Linear(2, 4)
-		self.f2 = nn.Linear(4, 4)
-		self.f3 = nn.Linear(16, 1)
-
-		self.last = nn.Linear(3,3)
 
 	def forward(self, x):
-		# mlp pose
-		x[0] = self.p1(x[0])
-		x[0] = self.relu(x[0])
-		x[0] = self.p2(x[0])
-		x[0] = self.relu(x[0])
-		x[0] = self.p3(x[0])
-		x[0] = self.relu(x[0])
-		# mlp frontiers
-		x[1] = self.f1(x[1])
-		x[1] = self.relu(x[1])
-		x[1] = self.f2(x[1])
-		x[1] = self.relu(x[1])
-		x[1] = x[1].reshape(x[1].shape[0], -1)
-		x[1] = self.f3(x[1])
-		x[1] = self.relu(x[1])
+
+		x[1] = x[1].view(x[1].size(0), -1)
+
 		# conv image
 		x[2] = self.conv1(x[2])
-		x[2] = self.conv2(x[2])
-		# x[2] = self.conv3(x[2])
-		x[2] = x[2].reshape(x[2].shape[0], -1)
+		x[2] = x[2].view(x[2].size(0), -1)
 		x[2] = self.ln1(x[2])
-		x[2] = self.relu(x[2])
-		x[2] = self.dropout(x[2])
-		x[2] = self.ln2(x[2])
-		x[2] = self.relu(x[2])
 
 
 		x = torch.cat((x[0], x[1], x[2]), dim=1)
 
-
-		x = self.last(x)
-
 		return x
-
 
 
 
@@ -101,14 +63,14 @@ class PolicyNetwork(nn.Module):
 		# action_space -> quantidade de acoes
 		
 		super(PolicyNetwork, self).__init__()
-		# Resumo, entra observation_space entradas e saem action_space saidas, com 128 neuronios na camada escondida.
+		# Resumo, entra observation_space entradas e saem action_space saidas, com 512 neuronios na camada escondida.
 		# Camada de entrada da rede de acordo com o observation_space
-		# 128 neuronios na camada escondida
-		self.input_layer = nn.Linear(observation_space, 128)
+		# 512 neuronios na camada escondida
+		self.input_layer = nn.Linear(observation_space, 512)
 		# hidden Layer
-		self.h_layer = nn.Linear(128,128)
+		self.h_layer = nn.Linear(512,512)
 		# Liga a camada escondida com a saida de tamanho definido pelo action_space
-		self.output_layer = nn.Linear(128, action_space)
+		self.output_layer = nn.Linear(512, action_space)
 
 		
 	
@@ -143,13 +105,13 @@ class StateValueNetwork(nn.Module):
 	def __init__(self, observation_space):
 		super(StateValueNetwork, self).__init__()
 		# observation_space -> quantidade de estados
-		# 128 neuronios na camada escondida
+		# 512 neuronios na camada escondida
 		
-		self.input_layer = nn.Linear(observation_space, 128)
+		self.input_layer = nn.Linear(observation_space, 512)
 		# hidden Layer
-		self.h_layer = nn.Linear(128,128)
+		self.h_layer = nn.Linear(512,512)
 		#
-		self.output_layer = nn.Linear(128, 1)
+		self.output_layer = nn.Linear(512, 1)
 		
 	def forward(self, x):
 		#input layer
@@ -365,6 +327,10 @@ def train_value(G, state_vals, optimizer):
 
 
 ########### MAIN ##############
+rospack = rospkg.RosPack()
+pkg_path = rospack.get_path('autonomous_exploration')
+file_path = pkg_path + "/scripts/stage_openai/model/"
+
 args = Config().parse()
 
 #discount factor for future utilities
@@ -375,6 +341,8 @@ NUM_EPISODES = args.NUM_EPISODES
 MAX_EPISODES = args.TOTAL_EPISODES
 #max steps per episode
 MAX_STEPS = args.MAX_STEPS
+# number of states (ANN inputs)
+NUM_STATES = args.num_states
 #device to run model on 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # DEVICE = "cpu"
@@ -394,12 +362,12 @@ env = StageEnvironment(args)
 while(env.observation_space.shape[0] == 0):
 	rospy.sleep(1)
 
-print("Number of states = %d" % env.observation_space.shape[0])
+print("Number of states = %d" % NUM_STATES)
 print("Number of possible actions = %d" % env.action_space)
 
 #Init network
-policy_network = PolicyNetwork(env.observation_space.shape[0], env.action_space).to(DEVICE)
-stateval_network = StateValueNetwork(env.observation_space.shape[0]).to(DEVICE)
+policy_network = PolicyNetwork(NUM_STATES, env.action_space).to(DEVICE)
+stateval_network = StateValueNetwork(NUM_STATES).to(DEVICE)
 concat_network = ConcatNetwork().to(DEVICE)
 
 #Init optimizer
@@ -424,8 +392,9 @@ rate = rospy.Rate(10)
 episode = 0
 episode_main = 0
 
+
 # state = env.reset()
-while not rospy.is_shutdown() or (episode <= NUM_EPISODES):
+while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 
 	if flag_first:
 		state = env.reset()
@@ -543,15 +512,15 @@ while not rospy.is_shutdown() or (episode <= NUM_EPISODES):
 	episode += 1
 
 	if(episode%20==0):
-		torch.save(policy_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/actor.pkl')
-		torch.save(stateval_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/critic.pkl')
+		torch.save(policy_network, file_path+"actor.pkl")
+		torch.save(stateval_network, file_path+"critic.pkl")
 
 	rate.sleep()
 
 	
 
-torch.save(policy_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/actor.pkl')
-torch.save(stateval_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous_exploration/scripts/stage_openai/model/critic.pkl')
+torch.save(policy_network, file_path+"actor.pkl")
+torch.save(stateval_network, file_path+"critic.pkl")
 
 
 
@@ -559,7 +528,6 @@ torch.save(stateval_network, '/home/victor/Ros_Projects/catkin_ws/src/autonomous
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import seaborn as sns
-import numpy as np
 
 sns.set()
 

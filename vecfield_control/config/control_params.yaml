@@ -10,7 +10,7 @@ vector_field:
     k_f: 5.0 # convergence gain of the vector field
 
 robot_pose:
-    pose_topic_name: base_pose_ground_truth # name of the topic in which the pose will be obtained
+    pose_topic_name: /base_pose_ground_truth # name of the topic in which the pose will be obtained
     pose_topic_type: Odometry # Options: 'TFMessage', 'Pose' or 'Odometry'
 
 robot_cmd:

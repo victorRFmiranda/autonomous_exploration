@@ -37,7 +37,7 @@ class ConcatNetwork(nn.Module):
 
 	def forward(self, x):
 
-		#x[1] = x[1].view(x[1].size(0), -1)
+		x[1] = x[1].view(x[1].size(0), -1)
 
 		# conv image
 		x[2] = self.conv1(x[2])
@@ -49,7 +49,7 @@ class ConcatNetwork(nn.Module):
 
 		return x
 
-
+ 
 
 
 
@@ -61,7 +61,6 @@ class Actor(nn.Module):
 	
 	#Takes in observations and outputs actions
 	def __init__(self, observation_space, action_space):
-		observation_space = 37
 		# observation_space -> quantidade de estados
 		# action_space -> quantidade de acoes
 		
@@ -108,7 +107,6 @@ class Critic(nn.Module):
 	#Takes in state
 	def __init__(self, observation_space):
 		super(Critic, self).__init__()
-		observation_space = 37
 		# observation_space -> quantidade de estados
 		# 128 neuronios na camada escondida
 		
@@ -342,6 +340,8 @@ NUM_EPISODES = args.NUM_EPISODES
 MAX_EPISODES = args.TOTAL_EPISODES
 #max steps per episode
 MAX_STEPS = args.MAX_STEPS
+# number of states (ANN inputs)
+NUM_STATES = args.num_states
 #device to run model on 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # DEVICE = "cpu"
@@ -361,12 +361,12 @@ env = StageEnvironment(args)
 while(env.observation_space.shape[0] == 0):
 	rospy.sleep(1)
 
-print("Number of states = %d" % env.observation_space.shape[0])
+print("Number of states = %d" % NUM_STATES)
 print("Number of possible actions = %d" % env.action_space)
 
 #Init network
-policy_network = Actor(env.observation_space.shape[0], env.action_space).to(DEVICE)
-stateval_network = Critic(env.observation_space.shape[0]).to(DEVICE)
+policy_network = Actor(NUM_STATES, env.action_space).to(DEVICE)
+stateval_network = Critic(NUM_STATES).to(DEVICE)
 concat_network = ConcatNetwork().to(DEVICE)
 
 #Init optimizer
@@ -430,7 +430,6 @@ while not rospy.is_shutdown() or (episode <= NUM_EPISODES):
 
 		#select action
 		action, lp = select_action(policy_network, state, concat_network)
-		print(state)
 	
 		
 		#execute action
