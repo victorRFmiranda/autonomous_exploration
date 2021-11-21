@@ -17,6 +17,8 @@ Numpy
 Pytorch
 Scikit-learn
 Seaborn
+Matplotlib
+Gym
 ```
 
 
