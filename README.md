@@ -16,6 +16,9 @@ $ sudo apt install ros-"your ros distro"-map-server
 Numpy
 Pytorch
 Scikit-learn
+Seaborn
+Matplotlib
+Gym
 ```
 
 
