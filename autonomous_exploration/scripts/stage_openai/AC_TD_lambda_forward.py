@@ -13,6 +13,9 @@ from torch.distributions import Categorical
 
 import numpy as np
 from collections import deque
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+import seaborn as sns
  
 
 
@@ -344,8 +347,8 @@ MAX_STEPS = args.MAX_STEPS
 # number of states (ANN inputs)
 NUM_STATES = args.num_states
 #device to run model on 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-# DEVICE = "cpu"
+#DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cpu"
 
 if torch.cuda.is_available():
 	gc.collect()
@@ -524,10 +527,16 @@ torch.save(stateval_network, file_path+"critic.pkl")
 
 
 
+reg = LinearRegression().fit(np.arange(len(scores)).reshape(-1, 1), np.array(scores).reshape(-1, 1))
+y_pred = reg.predict(np.arange(len(scores)).reshape(-1, 1))
 
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-import seaborn as sns
+
+## Export TXT
+np.savetxt(file_path+"scores.txt", scores, delimiter=',')
+np.savetxt(file_path+"predict.txt", y_pred, delimiter=',')
+
+## PLOT
+
 
 sns.set()
 
@@ -536,8 +545,6 @@ plt.ylabel('score')
 plt.xlabel('episodes')
 plt.title('Training score with Forward-view TD')
 
-reg = LinearRegression().fit(np.arange(len(scores)).reshape(-1, 1), np.array(scores).reshape(-1, 1))
-y_pred = reg.predict(np.arange(len(scores)).reshape(-1, 1))
 plt.plot(y_pred)
 plt.show()
 

@@ -13,7 +13,7 @@ class Config():
         parser.add_argument('--maps_gt', default=["map2","map2","map2","map2"], help='vector with name of stage maps for training')
 
         parser.add_argument('--DISCOUNT_FACTOR', default=0.99, help='vector with name of stage maps for training')
-        parser.add_argument('--SOLVED_SCORE', default=200, help='vector with name of stage maps for training')
+        parser.add_argument('--SOLVED_SCORE', default=2000, help='vector with name of stage maps for training')
         parser.add_argument('--CRITIC_LAMBDA', default=0.9, help='vector with name of stage maps for training')
         self.args = parser.parse_args()
 

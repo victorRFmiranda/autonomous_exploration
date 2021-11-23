@@ -73,7 +73,7 @@ class StageEnvironment(gym.Env):
 		rospy.Subscriber("/map_image", Image, self.callback_image)
 		rospy.Subscriber("/map",OccupancyGrid,self.callback_map)
 		rospy.Subscriber('/base_scan', LaserScan, self.callback_laser)
-		rospy.Subscriber("reached_endpoint", Int32, self.callback_control)
+		rospy.Subscriber("/reached_endpoint", Int32, self.callback_control)
 		self.pub_pose = rospy.Publisher("/cmd_pose", Pose, queue_size=1)
 		self.pub_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
 		self.pub_traj = rospy.Publisher("/traj_points", Path, queue_size=10)
@@ -347,7 +347,7 @@ class StageEnvironment(gym.Env):
 
 				if(self.flag_control >= 100):
 					count += 1
-					if(count >= 5):
+					if(count >= 4):
 						break
 
 				if(self.crash):
@@ -420,14 +420,17 @@ class StageEnvironment(gym.Env):
 
 	# compute the reward for this action
 	def compute_reward(self,D, map_gain):
+		map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
 
 		if(self.crash == 0):
-			map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
-			re = D + map_reward
+			# map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+			re = 0.5*D + map_reward
 
 			print("Map Reward = %f" % map_reward)
-			print("Distance Reward = %f" % D)
+			print("Distance Reward = %f" % (0.5*D))
 
+		elif (map_reward == 0):
+			re = 0
 		else:
 			re = 0
 
