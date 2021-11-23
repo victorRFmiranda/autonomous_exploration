@@ -45,6 +45,7 @@ class StageEnvironment(gym.Env):
 		self.step_count = 0
 		self.map = np.asarray([])
 		self.frontier = np.asarray([])
+		self.frontier_anterior = np.zeros((4,2))
 		self.freeMap_size = 0
 		
 		self.resol = 0
@@ -58,6 +59,7 @@ class StageEnvironment(gym.Env):
 		self.laser = []
 		self.crash = 0
 		self.flag_control = 0
+		self.flag_frontier = 1
 
 
 		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
@@ -74,6 +76,7 @@ class StageEnvironment(gym.Env):
 		rospy.Subscriber("/map",OccupancyGrid,self.callback_map)
 		rospy.Subscriber('/base_scan', LaserScan, self.callback_laser)
 		rospy.Subscriber("/reached_endpoint", Int32, self.callback_control)
+		rospy.Subscriber("/frontier_alive", Int32, self.callback_falive)
 		self.pub_pose = rospy.Publisher("/cmd_pose", Pose, queue_size=1)
 		self.pub_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
 		self.pub_traj = rospy.Publisher("/traj_points", Path, queue_size=10)
@@ -378,7 +381,7 @@ class StageEnvironment(gym.Env):
 					print("CRASH")
 					break
 
-				rospy.sleep(1)
+				rospy.sleep(2)
 
 			count = 0
 
@@ -407,25 +410,36 @@ class StageEnvironment(gym.Env):
 
 
 	def step(self, action):
-		f_def = self.detect_action(action)
+		# if(self.frontier == self.frontier_anterior).all():
+		# 	reward = 0
 
-		D = _dist(self.robot_pose,f_def)
+		if(self.flag_frontier):
 
+			f_def = self.detect_action(action)
 
-		map_before = self.freeMap_size
-		pose_before = self.robot_pose[0:2]
-
-		# Path planning and follow
-		self.follow_path(f_def)
-		print("Control END")
-
-		# compute distance
+			
+			D = _dist(self.robot_pose,f_def)
 
 
-		map_after = self.freeMap_size
-		map_gain = map_after - map_before
+			map_before = self.freeMap_size
+			pose_before = self.robot_pose[0:2]
 
-		reward = self.compute_reward(D, map_gain)
+			# Path planning and follow
+			self.follow_path(f_def)
+			print("Control END")
+
+			# compute distance
+
+
+			map_after = self.freeMap_size
+			map_gain = map_after - map_before
+
+			reward = self.compute_reward(D, map_gain)
+
+		else:
+			reward = 0
+			print("Frontier Dectection Failure!")
+
 
 
 		if(self.step_count >= self.max_actions or reward == 0):
@@ -439,6 +453,7 @@ class StageEnvironment(gym.Env):
 
 
 		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+
 
 		return new_state, reward, done
 
@@ -522,6 +537,9 @@ class StageEnvironment(gym.Env):
 
 	def callback_control(self,data):
 		self.flag_control = data.data
+
+	def callback_falive(self, data):
+		self.flag_frontier = data.data
 
 
 
@@ -674,8 +692,8 @@ def create_traj_msg(traj):
 	traj_msg.header.stamp = rospy.Time.now()
 
 	traj_msg.closed_path_flag = False
-	traj_msg.insert_n_points = 5
-	traj_msg.filter_path_n_average = 5
+	traj_msg.insert_n_points = 10
+	traj_msg.filter_path_n_average = 2
 
 
 	return traj_msg

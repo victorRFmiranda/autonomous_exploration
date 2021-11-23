@@ -6,6 +6,7 @@ import rospy
 from visualization_msgs.msg import Marker, MarkerArray
 from nav_msgs.msg import Odometry, OccupancyGrid
 from geometry_msgs.msg import PointStamped, Point
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from getfrontier import getfrontier
@@ -157,9 +158,10 @@ def run():
 	pub2 = rospy.Publisher('/cluster_markers', MarkerArray, queue_size=1)
 	pub_map = rospy.Publisher("/map_image", Image, queue_size=1)
 	pub_frontiers = rospy.Publisher("/frontier_points", frontier, queue_size=1)
+	pub_alive = rospy.Publisher("/frontier_alive", Int32, queue_size=1)
 
 	# routine frequency
-	rate = rospy.Rate(10)
+	rate = rospy.Rate(20)
 
 	while len(mapData.data)<1:
 		print("Waiting Map")
@@ -173,7 +175,9 @@ def run():
 		frontiers = compute_frontiers(width,height,resol, origem_map, mapData, robot_states)
 		# print(len(frontiers))
 		ft_array = frontier()
-		if(len(frontiers) > 2):
+		Alive_msg = Int32()
+		if(len(frontiers) > 4):
+			Alive_msg.data = 1
 
 			pointArray=MarkerArray()
 			for i in range(len(frontiers)):
@@ -290,7 +294,10 @@ def run():
 			pub_map.publish(map_image)
 
 
+		else:
+			Alive_msg.data = 0
 
+		pub_alive.publish(Alive_msg)
 		rate.sleep()
 
 
