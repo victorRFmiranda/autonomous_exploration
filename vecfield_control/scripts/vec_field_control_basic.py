@@ -11,6 +11,7 @@
 import rospy
 
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Int32
 import vecfield_control.msg
 
 from vector_field_control import rviz_helper, vec_field_node
@@ -34,10 +35,12 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
         vel = Twist()
         rate = rospy.Rate(self.freq)
         rate_slow = rospy.Rate(self.freq_slow)
+        reached_msg = Int32()
 
         prev_percentage = 0
 
         while not rospy.is_shutdown():
+            #reached_msg.data = 0
             if not self.vec_field_obj.is_ready():
                 # if the control algorithm is not ready to perform the path
                 # then command the robot to stop, only once
@@ -47,6 +50,10 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
                     self.pub_cmd_vel.publish(vel)
 
                 rate_slow.sleep()
+
+                # Publishing if reached the endpoint
+                reached_msg.data = 0
+                self.pub_reachend.publish(reached_msg)
                 continue
 
             linear_vel_x, angular_vel_z, Vx_ref, Vy_ref, reached_endpoint, reached_percentage = \
@@ -55,6 +62,13 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
             if int(reached_percentage) != int(prev_percentage) and (int(reached_percentage) % 5) == 0:
                 prev_percentage = reached_percentage
                 rospy.loginfo("goal reached?:%s, (%d%%)", reached_endpoint, reached_percentage)
+
+
+            # Publishing if reached the endpoint
+            reached_msg.data = int(reached_endpoint)
+            self.pub_reachend.publish(reached_msg)
+
+ 
 
             vel.linear.x = linear_vel_x
             vel.angular.z = angular_vel_z

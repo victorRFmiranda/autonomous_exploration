@@ -134,7 +134,14 @@ class StageEnvironment(gym.Env):
 		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
 		rospy.sleep(1)
 		print("gmapping reseted")
-		rospy.sleep(5)
+		rospy.sleep(10)
+
+		while(self.flag_control == 1):
+			print("wainting control")
+			rospy.sleep(1)
+		while(self.map.size == 0):
+			print("wainting Map!")
+			rospy.sleep(1)
 
 		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 
@@ -323,31 +330,48 @@ class StageEnvironment(gym.Env):
 		dijkstra = Dijkstra(ox, oy, grid_size, robot_radius)
 
 		try:
-			rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
-
 			path = []
+
+			# while(len(path)<3):
+			print("Planning")
+			rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+			# path.append(start)
 			for j in range(len(rx)):
 				path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
 
-			vec_path = np.zeros((len(path),2))
-			for i in range(len(path)):
-				vec_path[i,:] = list(path[i])
-				vec_path[i,0] = self.origem_map[0] + (vec_path[i,0]*self.resol + self.resol/2.0)
-				vec_path[i,1] = self.origem_map[1] + (vec_path[i,1]*self.resol + self.resol/2.0)
+			# print(path)
 
+			# # Prevent planning erors
+			if (len(path) < 3):
+				print("Planning failure, return!")
+				return
+
+			vec_path = np.zeros((len(path)+1,2))
+			for i in range(len(path)+1):
+				if(i==len(path)):
+					vec_path[i,0] = point[0]
+					vec_path[i,1] = point[1]
+				else:
+					vec_path[i,:] = list(path[i])
+					vec_path[i,0] = self.origem_map[0] + (vec_path[i,0]*self.resol + self.resol/2.0)
+					vec_path[i,1] = self.origem_map[1] + (vec_path[i,1]*self.resol + self.resol/2.0)
+
+			# spec = raw_input("Press Enter to continue")
 			xy_path = create_traj_msg(vec_path)
 
 			self.pub_traj.publish(xy_path)
+			rospy.sleep(2)
 
 			D = 1000
 			count = 0
 			while(D > 0.5 and not rospy.is_shutdown()):
+				self.pub_traj.publish(xy_path)
 				D = _dist([point[0],point[1]],[self.robot_pose[0],self.robot_pose[1]])
-				# print("Distancy = %f" % D)
 
-				if(self.flag_control >= 100):
+				if(self.flag_control >= 1):
 					count += 1
-					if(count >= 4):
+					if(count >= 6):
+						self.flag_control = 0
 						break
 
 				if(self.crash):
@@ -393,6 +417,7 @@ class StageEnvironment(gym.Env):
 
 		# Path planning and follow
 		self.follow_path(f_def)
+		print("Control END")
 
 		# compute distance
 
@@ -420,17 +445,18 @@ class StageEnvironment(gym.Env):
 
 	# compute the reward for this action
 	def compute_reward(self,D, map_gain):
-		map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+		# map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
 
 		if(self.crash == 0):
-			# map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+			map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+			
+			# if (map_reward == 0):
+			# 	re = 0
+			# else:
 			re = 0.5*D + map_reward
 
 			print("Map Reward = %f" % map_reward)
 			print("Distance Reward = %f" % (0.5*D))
-
-		elif (map_reward == 0):
-			re = 0
 		else:
 			re = 0
 
@@ -648,7 +674,7 @@ def create_traj_msg(traj):
 	traj_msg.header.stamp = rospy.Time.now()
 
 	traj_msg.closed_path_flag = False
-	traj_msg.insert_n_points = 10
+	traj_msg.insert_n_points = 5
 	traj_msg.filter_path_n_average = 5
 
 

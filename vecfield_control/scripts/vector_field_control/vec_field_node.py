@@ -9,6 +9,7 @@
 """
 
 import rospy
+from std_msgs.msg import Int32
 from geometry_msgs.msg import Twist, Pose, Point
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
@@ -54,6 +55,7 @@ class VecFieldNode(object):
         self.pub_cmd_vel = None
         self.pub_rviz_ref = None
         self.pub_rviz_curve = None
+        self.pub_reachend = None
 
         self.init_node()
 
@@ -87,6 +89,7 @@ class VecFieldNode(object):
         self.pub_cmd_vel = rospy.Publisher(self.cmd_vel_topic_name, Twist, queue_size=1)
         self.pub_rviz_ref = rospy.Publisher("/visualization_ref_vel", Marker, queue_size=1)
         self.pub_rviz_curve = rospy.Publisher("/visualization_trajectory", MarkerArray, queue_size=1)
+        self.pub_reachend = rospy.Publisher("/reached_endpoint", Int32, queue_size=1)
 
         # subscribers
         rospy.Subscriber(self.obstacle_point_topic_name, Point, self.obstacle_point_cb)
