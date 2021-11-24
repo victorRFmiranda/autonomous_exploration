@@ -96,12 +96,14 @@ class Robot:
 		# integra o tempo
 		self.t += dt
 		
-		#u = np.zeros(2)
-		u = np.ones(2)
+		# VX e VY
+		u = np.zeros(2)
+		# u = np.ones(2)
+		# u = np.asarray([0.0,1.0])
 		u = self.satSpeed(u)
 
 		# update mapa
-		self.mapUpdate()
+		map_obs = self.mapUpdate()
 
 		##################
 		# aplica controlador ao robo
@@ -110,6 +112,8 @@ class Robot:
 		
 		# salva trajetoria
 		self.saveTraj()
+
+		return self.p, map_obs
 					
 	########################################
 	# update do mapa

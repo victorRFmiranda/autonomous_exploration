@@ -11,6 +11,7 @@ import colorsys, time
 import class_robot as robot
 import class_map
 import class_vertex
+from dijkstra import Dijkstra
 
 ################################################################################
 # CONFIGS
@@ -39,15 +40,18 @@ matplotlib.rcParams['figure.dpi'] = 100
 np.random.seed(30)
 
 # globais
-DT = 1.0e-1
+# DT = 1.0e-1
+DT = 3
 XLIMITS = (-50., 50.)
 YLIMITS = (-50., 50.)
+SIM_TIME = 100.0
+CARSIZE = 0.1 # tamanho do robo
 
 SALVA_IMGS = False
 
 ########################################
 # cria o mapa
-mapa = class_map.Map(XLIMITS, YLIMITS, image = 'imgs/cave.png', distance2obstacles = 2.0)
+mapa = class_map.Map(XLIMITS, YLIMITS, image = 'imgs/muro.png', distance2obstacles = 2.0)
 
 robo = robot.Robot(np.array([-40., -40.]), mapa)
 
@@ -62,12 +66,37 @@ ax1 = fig1.add_subplot(111, aspect='equal')
 t = 0.0
 count_frame = 0
 
-while robo.clock() < 20.0:	
+while robo.clock() < SIM_TIME:	
 	# atualiza modelo
-	robo.model(DT)
+	pos, map_obs = robo.model(DT)
+	
+	collision = mapa.collision(robo.p,CARSIZE)
+	obstacles_list = mapa.getObstacles()
+
+	start = mapa.mts2px(robo.p)
+	goal = mapa.mts2px(np.asarray([-38.0,-38.0]))
+
+	print("Start = ", start)
+	print("Goal = ", goal)
+
+	dijkstra = Dijkstra(np.asarray([[XLIMITS[0],XLIMITS[1]],[YLIMITS[0],YLIMITS[1]]]),obstacles_list[0], obstacles_list[1], 1.0, CARSIZE)
+	rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+	path = []
+	for j in range(len(rx)):
+		path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
+
+	print(path)
+
+	
+
+	# start = [int(round((self.robot_pose[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((self.robot_pose[1]-self.origem_map[1]-self.resol/2.0)/self.resol))]
+	# goal = [int(round((point[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((point[1]-self.origem_map[1]-self.resol/2.0)/self.resol))]
+	# print(pos)
+
+	# print(obstacles_list)
 
 	# desenha de vezes em quando
-	if (t % .5) < DT:
+	if (t % 1) < DT:
 		ax1.cla()
 		if not SALVA_IMGS:
 			plt.title('Time: %.1lf s' % t)

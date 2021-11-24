@@ -347,8 +347,8 @@ MAX_STEPS = args.MAX_STEPS
 # number of states (ANN inputs)
 NUM_STATES = args.num_states
 #device to run model on 
-#DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DEVICE = "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+#DEVICE = "cpu"
 
 if torch.cuda.is_available():
 	gc.collect()
@@ -518,6 +518,9 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 	if(episode%20==0):
 		torch.save(policy_network, file_path+"actor.pkl")
 		torch.save(stateval_network, file_path+"critic.pkl")
+
+
+		np.savetxt(file_path+"scores.txt", scores, delimiter=',')
 
 		# sns.set()
 		plt.ion()

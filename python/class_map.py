@@ -26,10 +26,10 @@ class Map:
 		self.init2D(image)
 		
 		# use latex
-		try:
-			plt.rcParams['text.usetex'] = True
-		except:
-			print('Sem latex...')
+		# try:
+		# 	plt.rcParams['text.usetex'] = True
+		# except:
+		# 	print('Sem latex...')
 		
 	########################################
 	# ambientes em 2D
@@ -126,7 +126,7 @@ class Map:
 					except IndexError:
 						None
 					
-		return change
+		return self.mapa_obs
 		
 	########################################
 	# transforma pontos no mundo real para pixels na imagem
@@ -172,6 +172,11 @@ class Map:
 	def getMap(self):
 		img = cv2.resize(self.mapa_obs, (64, 64), interpolation=cv2.INTER_NEAREST)
 		return img
+
+	#######################################
+	def getObstacles(self):
+		m_obstacles = [np.where(self.mapa_obs==0)[0].tolist(),np.where(self.mapa_obs==0)[1].tolist()]
+		return m_obstacles
 	
 	########################################
 	# desenha a imagem distorcida em metros

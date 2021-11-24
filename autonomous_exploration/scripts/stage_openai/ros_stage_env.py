@@ -2,6 +2,7 @@
 
 import rospy
 import numpy as np
+import rosnode
 
 import gym
 import time
@@ -29,8 +30,10 @@ from dijkstra import Dijkstra
 from vecfield_control.msg import Path
 
 
+
 class StageEnvironment(gym.Env):
 	def __init__(self,args):
+
 		self.action_space = args.num_actions		# num frontiers (fixed)
 		# self.observation_space = args.num_states
 		self.observation_space = np.asarray([])
@@ -319,6 +322,8 @@ class StageEnvironment(gym.Env):
 	
 	# Dijkstra
 	def follow_path(self,point):
+		global flag_nodes
+
 		start = [int(round((self.robot_pose[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((self.robot_pose[1]-self.origem_map[1]-self.resol/2.0)/self.resol))]
 		goal = [int(round((point[0]-self.origem_map[0]-self.resol/2.0)/self.resol)),int(round((point[1]-self.origem_map[1]-self.resol/2.0)/self.resol))]
 
@@ -346,49 +351,63 @@ class StageEnvironment(gym.Env):
 
 			# # Prevent planning erors
 			if (len(path) < 3):
+				planning_fail = True
 				print("Planning failure, return!")
-				return
 
-			vec_path = np.zeros((len(path)+1,2))
-			for i in range(len(path)+1):
-				if(i==len(path)):
-					vec_path[i,0] = point[0]
-					vec_path[i,1] = point[1]
-				else:
+			else:
+				planning_fail = False
+
+				vec_path = np.zeros((len(path),2))
+				for i in range(len(path)):
+					# if(i==len(path)):
+					# 	vec_path[i,0] = point[0]
+					# 	vec_path[i,1] = point[1]
+					# else:
 					vec_path[i,:] = list(path[i])
 					vec_path[i,0] = self.origem_map[0] + (vec_path[i,0]*self.resol + self.resol/2.0)
 					vec_path[i,1] = self.origem_map[1] + (vec_path[i,1]*self.resol + self.resol/2.0)
 
-			# spec = raw_input("Press Enter to continue")
-			xy_path = create_traj_msg(vec_path)
+				# spec = raw_input("Press Enter to continue")
+				xy_path = create_traj_msg(vec_path)
 
-			self.pub_traj.publish(xy_path)
-			rospy.sleep(2)
-
-			D = 1000
-			count = 0
-			while(D > 0.5 and not rospy.is_shutdown()):
 				self.pub_traj.publish(xy_path)
-				D = _dist([point[0],point[1]],[self.robot_pose[0],self.robot_pose[1]])
+				rospy.sleep(1)
+				self.pub_traj.publish(xy_path)
+				rospy.sleep(1)
+				self.pub_traj.publish(xy_path)
 
-				if(self.flag_control >= 1):
-					count += 1
-					if(count >= 6):
-						self.flag_control = 0
+				D = 1000
+				count = 0
+				while(D > 0.5 and not rospy.is_shutdown()):
+					# self.pub_traj.publish(xy_path)
+					D = _dist([point[0],point[1]],[self.robot_pose[0],self.robot_pose[1]])
+
+					if not self.check_nodes():
 						break
 
-				if(self.crash):
-					print("CRASH")
-					break
+					if(self.flag_control >= 1):
+						count += 1
+						if(count >= 4):
+							self.flag_control = 0
+							break
 
-				rospy.sleep(2)
+					if(self.crash):
+						print("CRASH")
+						break
 
-			count = 0
 
-			rospy.sleep(5)
+
+					rospy.sleep(2)
+
+				count = 0
+
+				rospy.sleep(5)
+
+			return planning_fail
 
 		except:
-			return
+			planning_fail = True
+			return planning_fail
 		
 
 
@@ -409,11 +428,38 @@ class StageEnvironment(gym.Env):
 		return outp
 
 
-	def step(self, action):
-		# if(self.frontier == self.frontier_anterior).all():
-		# 	reward = 0
+	def check_nodes(self):
+		flag = True
+		node_list = list(rosnode.get_node_names())
+		# check vector field
+		if not (node_list.count('/vecfield_control')):
+			flag = False
+			print("Reseting Control")
+		# check gmapping
+		if not (node_list.count('/GMAP')):
+			flag = False
+			print("Reseting Mapping")
+		# check detect frontiers
+		if not (node_list.count('/Detect_frontier')):
+			flag = False
+			print("Reseting Detect Frontiers")
+		# check stage
+		if not (node_list.count('/stageros')):
+			node = "/stageros"
+			os.system("rosnode kill "+ node)
+			time.sleep(1)
+			os.system("gnome-terminal -x roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
+			time.sleep(1)
+			flag = False
+			print("Reseting Stage")
+		return flag
 
-		if(self.flag_frontier):
+
+	def step(self, action):
+		flag_nodes = self.check_nodes()
+		# global flag_nodes
+
+		if(self.flag_frontier and flag_nodes):
 
 			f_def = self.detect_action(action)
 
@@ -425,20 +471,23 @@ class StageEnvironment(gym.Env):
 			pose_before = self.robot_pose[0:2]
 
 			# Path planning and follow
-			self.follow_path(f_def)
+			planning_fail = self.follow_path(f_def)
 			print("Control END")
 
-			# compute distance
+			if(planning_fail):
+				reward = 0
 
+			else:
 
-			map_after = self.freeMap_size
-			map_gain = map_after - map_before
+				# compute distance
+				map_after = self.freeMap_size
+				map_gain = map_after - map_before
 
-			reward = self.compute_reward(D, map_gain)
+				reward = self.compute_reward(D, map_gain)
 
 		else:
 			reward = 0
-			print("Frontier Dectection Failure!")
+			print("Failure!")
 
 
 
@@ -693,7 +742,7 @@ def create_traj_msg(traj):
 
 	traj_msg.closed_path_flag = False
 	traj_msg.insert_n_points = 10
-	traj_msg.filter_path_n_average = 2
+	traj_msg.filter_path_n_average = 4
 
 
 	return traj_msg

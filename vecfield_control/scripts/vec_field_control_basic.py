@@ -56,25 +56,30 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
                 self.pub_reachend.publish(reached_msg)
                 continue
 
-            linear_vel_x, angular_vel_z, Vx_ref, Vy_ref, reached_endpoint, reached_percentage = \
-                self.vec_field_obj.run_one_cycle()
+            try:
+                linear_vel_x, angular_vel_z, Vx_ref, Vy_ref, reached_endpoint, reached_percentage = \
+                    self.vec_field_obj.run_one_cycle()
 
-            if int(reached_percentage) != int(prev_percentage) and (int(reached_percentage) % 5) == 0:
-                prev_percentage = reached_percentage
-                rospy.loginfo("goal reached?:%s, (%d%%)", reached_endpoint, reached_percentage)
+                if int(reached_percentage) != int(prev_percentage) and (int(reached_percentage) % 5) == 0:
+                    prev_percentage = reached_percentage
+                    rospy.loginfo("goal reached?:%s, (%d%%)", reached_endpoint, reached_percentage)
 
 
-            # Publishing if reached the endpoint
-            reached_msg.data = int(reached_endpoint)
-            self.pub_reachend.publish(reached_msg)
+                # Publishing if reached the endpoint
+                reached_msg.data = int(reached_endpoint)
+                self.pub_reachend.publish(reached_msg)
 
- 
+     
 
-            vel.linear.x = linear_vel_x
-            vel.angular.z = angular_vel_z
+                vel.linear.x = linear_vel_x
+                vel.angular.z = angular_vel_z
 
-            self.pub_cmd_vel.publish(vel)
-            rviz_helper.send_marker_to_rviz(Vx_ref, Vy_ref, self.pos, self.pub_rviz_ref)
+                self.pub_cmd_vel.publish(vel)
+                rviz_helper.send_marker_to_rviz(Vx_ref, Vy_ref, self.pos, self.pub_rviz_ref)
+
+            except:
+                print "\33[93mTemporary problem in the computation of the field !\33[0m"
+
 
             rate.sleep()
 
