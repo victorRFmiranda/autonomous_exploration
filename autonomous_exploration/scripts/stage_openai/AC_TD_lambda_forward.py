@@ -442,7 +442,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		# think in my case: if the actions is correct reward = 1 and done = false, else reward = 1 and done = true
 		new_state, reward, done = env.step(action)  
 
-		print("reward = ", reward)
+		# print("reward = ", reward)
 
 		
 		#track episode score

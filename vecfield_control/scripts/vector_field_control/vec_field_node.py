@@ -25,9 +25,9 @@ class VecFieldNode(object):
     """
     Navigation control using Action Server
     """
-
+ 
     def __init__(self):
-        self.freq = 20.0  # Frequency of field computation in Hz
+        self.freq = 30.0  # Frequency of field computation in Hz
         self.freq_slow = 1.0
 
         self.pos = [0, 0, 0]  # Robot position and orientation

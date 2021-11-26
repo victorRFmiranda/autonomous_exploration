@@ -338,21 +338,32 @@ class StageEnvironment(gym.Env):
 		dijkstra = Dijkstra(ox, oy, grid_size, robot_radius)
 
 		try:
-			path = []
+			# path = []
 
-			# while(len(path)<3):
-			print("Planning")
-			rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
-			# path.append(start)
-			for j in range(len(rx)):
-				path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
-
-			# print(path)
+			# print("Planning")
+			# rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+			# # path.append(start)
+			# for j in range(len(rx)):
+			# 	path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
 
 			# # Prevent planning erors
+			count_plan = 0
+			path = []
+			while (len(path) < 3 and count_plan < 5):
+				# print("\33[91m Retry planning! \33[0m")
+				print("Planning")
+				path = []
+				rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+				# path.append(start)
+				for j in range(len(rx)):
+					path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
+
+				count_plan += 1
+
+
 			if (len(path) < 3):
 				planning_fail = True
-				print("Planning failure, return!")
+				print("\33[41m Planning failure, return! \33[0m")
 
 			else:
 				planning_fail = False
@@ -371,33 +382,29 @@ class StageEnvironment(gym.Env):
 				xy_path = create_traj_msg(vec_path)
 
 				self.pub_traj.publish(xy_path)
-				rospy.sleep(1)
-				self.pub_traj.publish(xy_path)
-				rospy.sleep(1)
-				self.pub_traj.publish(xy_path)
 
 				D = 1000
 				count = 0
+				t1 = rospy.get_rostime().to_sec()
 				while(D > 0.5 and not rospy.is_shutdown()):
-					# self.pub_traj.publish(xy_path)
+					if(rospy.get_rostime().to_sec() - t1 == 10):
+						# print("\33[92m TIME \33[0m")
+						t1 = rospy.Time.now().to_sec()
+						self.pub_traj.publish(xy_path)
 					D = _dist([point[0],point[1]],[self.robot_pose[0],self.robot_pose[1]])
 
 					if not self.check_nodes():
 						break
 
-					if(self.flag_control >= 1):
-						count += 1
-						if(count >= 4):
-							self.flag_control = 0
-							break
+					if(self.flag_control == 1):
+						self.flag_control = 0
+						break
 
 					if(self.crash):
 						print("CRASH")
 						break
 
-
-
-					rospy.sleep(2)
+					rospy.sleep(0.1)
 
 				count = 0
 
@@ -512,15 +519,18 @@ class StageEnvironment(gym.Env):
 		# map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
 
 		if(self.crash == 0):
-			map_reward = 0.1*float(map_gain) #/float(self.freeMap_size)
+			map_reward = 0.07*float(map_gain) #/float(self.freeMap_size)
+			distancy = log(D)
 			
 			# if (map_reward == 0):
 			# 	re = 0
 			# else:
-			re = 0.5*D + map_reward
+			# re = 0.5*D + map_reward
+			re = distancy + map_reward
 
-			print("Map Reward = %f" % map_reward)
-			print("Distance Reward = %f" % (0.5*D))
+			print("\33[92m Map Reward = %f \33[0m" % map_reward)
+			print("\33[94m Distance Reward = %f \33[0m" % distancy)
+			print("\33[96m Reward total = %f \33[0m" % re)
 		else:
 			re = 0
 

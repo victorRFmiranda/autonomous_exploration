@@ -68,6 +68,10 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
                 # Publishing if reached the endpoint
                 reached_msg.data = int(reached_endpoint)
                 self.pub_reachend.publish(reached_msg)
+                if(reached_endpoint):
+                    t1 = rospy.get_rostime().to_sec()
+                    while(rospy.get_rostime().to_sec() - t1 < 2):
+                        self.pub_reachend.publish(reached_msg)
 
      
 
