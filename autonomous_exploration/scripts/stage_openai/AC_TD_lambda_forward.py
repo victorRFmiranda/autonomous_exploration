@@ -333,6 +333,7 @@ def train_value(G, state_vals, optimizer):
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path('autonomous_exploration')
 file_path = pkg_path + "/scripts/stage_openai/model/"
+LOAD_NETWORK = True
 
 args = Config().parse()
 
@@ -369,8 +370,15 @@ print("Number of states = %d" % NUM_STATES)
 print("Number of possible actions = %d" % env.action_space)
 
 #Init network
-policy_network = PolicyNetwork(NUM_STATES, env.action_space).to(DEVICE)
-stateval_network = StateValueNetwork(NUM_STATES).to(DEVICE)
+if(LOAD_NETWORK == True):
+	print("Loading Network")
+	policy_network = torch.load(file_path+"actor.pkl")
+	stateval_network = torch.load(file_path+"critic.pkl")
+else:
+	print("Creating Network")
+	policy_network = PolicyNetwork(NUM_STATES, env.action_space).to(DEVICE)
+	stateval_network = StateValueNetwork(NUM_STATES).to(DEVICE)
+
 concat_network = ConcatNetwork().to(DEVICE)
 
 #Init optimizer
