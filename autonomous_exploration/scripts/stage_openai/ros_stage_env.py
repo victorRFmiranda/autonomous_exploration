@@ -311,29 +311,32 @@ class StageEnvironment(gym.Env):
 
 		if(self.flag_frontier and flag_nodes):
 
-			f_def = self.detect_action(action)
+			try:
+				f_def = self.detect_action(action)
 
-			
-			D = _dist(self.robot_pose,f_def)
+				
+				D = _dist(self.robot_pose,f_def)
 
 
-			map_before = self.freeMap_size
-			pose_before = self.robot_pose[0:2]
+				map_before = self.freeMap_size
+				pose_before = self.robot_pose[0:2]
 
-			# Path planning and follow
-			planning_fail = self.follow_path(f_def)
-			print("Control END")
+				# Path planning and follow
+				planning_fail = self.follow_path(f_def)
+				print("Control END")
 
-			if(planning_fail):
+				if(planning_fail):
+					reward = 0
+
+				else:
+
+					# compute distance
+					map_after = self.freeMap_size
+					map_gain = map_after - map_before
+
+					reward = self.compute_reward(D, map_gain)
+			except:
 				reward = 0
-
-			else:
-
-				# compute distance
-				map_after = self.freeMap_size
-				map_gain = map_after - map_before
-
-				reward = self.compute_reward(D, map_gain)
 
 		else:
 			reward = 0
