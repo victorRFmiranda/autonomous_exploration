@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import seaborn as sns
  
-
+ 
 
 
 def conv_block(input_size, output_size):
@@ -89,7 +89,8 @@ class PolicyNetwork(nn.Module):
 		x2 = self.h_layer(x)
 		x3 = self.h_layer(x2)
 		x4 = self.h_layer(x3)
-		x5 = F.relu(x4)
+		x5 = self.h_layer(x4)
+		x6 = F.relu(x5)
 
 		
 		#actions
@@ -127,7 +128,8 @@ class StateValueNetwork(nn.Module):
 		x2 = self.h_layer(x)
 		x3 = self.h_layer(x2)
 		x4 = self.h_layer(x3)
-		x5 = F.relu(x4)
+		x5 = self.h_layer(x4)
+		x6 = F.relu(x5)
 		
 		#get state value
 		state_value = self.output_layer(x5)
