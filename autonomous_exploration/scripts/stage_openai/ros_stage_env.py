@@ -50,7 +50,7 @@ class StageEnvironment(gym.Env):
 		self.frontier = np.asarray([])
 		self.frontier_anterior = np.zeros((4,2))
 		self.freeMap_size = 0
-		# self.fullMap = self.get_fullMap()
+		self.fullMap = self.get_fullMap()
 		
 		self.resol = 0
 		self.width = 0
@@ -88,12 +88,23 @@ class StageEnvironment(gym.Env):
 
 
 
-	# def get_fullMap(self):
-	# 	path = rospy.get_param('/map_dir')
-	# 	img = cv2.imread(path, 0) 
-	# 	mapa = img
-	# 	print(mapa)
-	# 	return mapa
+	def get_fullMap(self):
+		path = rospy.get_param('/map_dir')
+		img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) 
+		# img = cv2.resize(img, (64, 64),interpolation=cv2.INTER_NEAREST)
+		w,h = img.shape
+		point = [-20.0,-20.0]
+		n_point = [int(round( (point[0] + 25 - (w/100.0))/(w/50.0) )), int(round( (point[1] + 25 - (h/100.0))/(h/50.0) ))]
+		print(n_point)
+		print(w,h)
+		mapa = []
+		for i in range(w):
+			for j in range(h):
+				if(img[i][j] == 0):
+					mapa.append([(float(i)/(float(h)/50.0)) - 25.0, (float(w - j)/(float(w)/50.0)) - 25.0])
+
+		print(mapa)
+		return mapa
 
 	# def max_freeSpaces(self):
 	# 	file = rospy.get_param("/map_dir")
@@ -159,10 +170,10 @@ class StageEnvironment(gym.Env):
 
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		n_frontier = np.zeros(self.frontier.shape)
 		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
 		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
@@ -175,10 +186,10 @@ class StageEnvironment(gym.Env):
 
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		n_frontier = np.zeros(self.frontier.shape)
 		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
 		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
@@ -378,10 +389,10 @@ class StageEnvironment(gym.Env):
 
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		n_frontier = np.zeros(self.frontier.shape)
 		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
 		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
