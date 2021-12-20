@@ -335,7 +335,7 @@ def train_value(G, state_vals, optimizer):
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path('autonomous_exploration')
 file_path = pkg_path + "/scripts/stage_openai/model/"
-LOAD_NETWORK = True
+LOAD_NETWORK = False
 
 args = Config().parse()
 
