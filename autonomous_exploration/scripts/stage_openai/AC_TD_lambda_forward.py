@@ -335,7 +335,7 @@ def train_value(G, state_vals, optimizer):
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path('autonomous_exploration')
 file_path = pkg_path + "/scripts/stage_openai/model/"
-LOAD_NETWORK = True
+LOAD_NETWORK = False
 
 args = Config().parse()
 
@@ -410,8 +410,8 @@ episode_main = 0
 while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 
 	if flag_first:
-		state = env.reset()
-		changed_pose = list(state[0])
+		state,n_pose = env.reset()
+		changed_pose = list(n_pose)
 		flag_first = False
 		print("Reset")
 		print(changed_pose)
@@ -420,7 +420,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		# changed_pose = list(bk_state[0])
 		print("Reset pose")
 		print(changed_pose)
-		state = env.reset_pose(changed_pose)
+		state,_ = env.reset_pose(changed_pose)
 		rospy.sleep(5)
 
 
