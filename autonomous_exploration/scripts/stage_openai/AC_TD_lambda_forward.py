@@ -420,7 +420,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		# changed_pose = list(bk_state[0])
 		print("Reset pose")
 		print(changed_pose)
-		state,_ = env.reset_pose(changed_pose)
+		state,_ = env.reset_pose(changed_pose, False)
 		rospy.sleep(5)
 
 

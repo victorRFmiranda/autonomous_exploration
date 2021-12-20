@@ -10,14 +10,16 @@ import copy
 import os
 import cv2
 
+import tf
+import tf2_ros
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
-from geometry_msgs.msg import Pose, PoseStamped, Twist, Polygon, Point32, Point
+from geometry_msgs.msg import Pose, PoseStamped, Twist, Polygon, Point32, Point, TransformStamped
 from sensor_msgs.msg import Image, LaserScan
 from std_msgs.msg import Int32, Bool
 from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry, OccupancyGrid
 import matplotlib.pyplot as plt
-
+import random
 from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log
 
 from autonomous_exploration.msg import frontier
@@ -50,7 +52,10 @@ class StageEnvironment(gym.Env):
 		self.frontier = np.asarray([])
 		self.frontier_anterior = np.zeros((4,2))
 		self.freeMap_size = 0
+
+		## FOR RANDOM START POINT
 		self.fullMap = self.get_fullMap()
+		# rnd_point = self.get_random(self.fullMap)
 		
 		self.resol = 0
 		self.width = 0
@@ -64,13 +69,6 @@ class StageEnvironment(gym.Env):
 		self.crash = 0
 		self.flag_control = 0
 		self.flag_frontier = 1
-
-
-		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
-		rospy.sleep(1)
-		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
-		rospy.sleep(1)
-
 
 		rospy.init_node("Stage_environment", anonymous=True)
 		rospy.Subscriber("/crash_stall", Int32, self.callback_crashStatus)
@@ -88,23 +86,61 @@ class StageEnvironment(gym.Env):
 
 
 
+
+
+		# START PROGRAMS
+		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
+		rospy.sleep(2)
+
+		broadcaster = tf2_ros.StaticTransformBroadcaster()
+		static_transformStamped = TransformStamped()
+		static_transformStamped.header.stamp = rospy.Time.now()
+		static_transformStamped.header.frame_id = "world"
+		static_transformStamped.child_frame_id = "odom"
+		static_transformStamped.transform.translation.x = self.robot_pose[0]
+		static_transformStamped.transform.translation.y = self.robot_pose[1]
+		static_transformStamped.transform.translation.z = 0.0
+		q = quaternion_from_euler(0,0,self.robot_pose[2])
+		static_transformStamped.transform.rotation.x = q[0]
+		static_transformStamped.transform.rotation.y = q[1]
+		static_transformStamped.transform.rotation.z = q[2]
+		static_transformStamped.transform.rotation.w = q[3]
+		broadcaster.sendTransform(static_transformStamped)
+		
+		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
+		rospy.sleep(2)
+
+
+
+
+
 	def get_fullMap(self):
 		path = rospy.get_param('/map_dir')
 		img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) 
-		# img = cv2.resize(img, (64, 64),interpolation=cv2.INTER_NEAREST)
 		w,h = img.shape
-		point = [-20.0,-20.0]
-		n_point = [int(round( (point[0] + 25 - (w/100.0))/(w/50.0) )), int(round( (point[1] + 25 - (h/100.0))/(h/50.0) ))]
-		print(n_point)
-		print(w,h)
 		mapa = []
 		for i in range(w):
 			for j in range(h):
 				if(img[i][j] == 0):
 					mapa.append([(float(i)/(float(h)/50.0)) - 25.0, (float(w - j)/(float(w)/50.0)) - 25.0])
+		return np.asarray(mapa)
 
-		print(mapa)
-		return mapa
+	def get_random(self, mapa):
+		while True:
+			flag_roll = False
+			n_point = np.asarray([random.uniform(-25.0, 25.0), random.uniform(-25.0, 25.0)])
+			print("Ponto = ", n_point)
+			for i in range(len(mapa)):
+				if(_dist(n_point,mapa[i]) < 8.0):
+					flag_roll = True
+					break
+
+			if not flag_roll:
+				break
+
+		return n_point
+
+
 
 	# def max_freeSpaces(self):
 	# 	file = rospy.get_param("/map_dir")
@@ -125,7 +161,7 @@ class StageEnvironment(gym.Env):
 		self.map_count += 1
 
 	# restart stage (robot back to the init position) - change the robot pose in training code
-	def reset_pose(self, data):
+	def reset_pose(self, data, flag_rnd):
 
 		# KIll Control
 		node = "/vecfield_control"
@@ -143,6 +179,10 @@ class StageEnvironment(gym.Env):
 		
 		# Reset Pose
 		msg_pos = Pose()
+		if flag_rnd:
+			rnd_point = self.get_random(self.fullMap)
+			data = np.asarray([rnd_point[0],rnd_point[1],0.0])
+		
 		q = quaternion_from_euler(0,0,data[2])
 		msg_pos.orientation.x = q[0]
 		msg_pos.orientation.y = q[1]
@@ -156,6 +196,21 @@ class StageEnvironment(gym.Env):
 		rospy.sleep(3)
 
 		# Open Gmapping
+		if flag_rnd:
+			broadcaster = tf2_ros.StaticTransformBroadcaster()
+			static_transformStamped = TransformStamped()
+			static_transformStamped.header.stamp = rospy.Time.now()
+			static_transformStamped.header.frame_id = "world"
+			static_transformStamped.child_frame_id = "odom"
+			static_transformStamped.transform.translation.x = data[0]
+			static_transformStamped.transform.translation.y = data[1]
+			static_transformStamped.transform.translation.z = 0.0
+			static_transformStamped.transform.rotation.x = q[0]
+			static_transformStamped.transform.rotation.y = q[1]
+			static_transformStamped.transform.rotation.z = q[2]
+			static_transformStamped.transform.rotation.w = q[3]
+			broadcaster.sendTransform(static_transformStamped)
+
 		os.system("gnome-terminal -- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.5 odom_fram:=world")
 		rospy.sleep(1)
 		print("gmapping reseted")
@@ -359,6 +414,7 @@ class StageEnvironment(gym.Env):
 				print("Control END")
 
 				if(planning_fail):
+					print("\33[41m Planning failure, return! \33[0m")
 					reward = 0
 
 				else:
