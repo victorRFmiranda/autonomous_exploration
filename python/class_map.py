@@ -37,6 +37,7 @@ class Map:
 		
 		# le a imagem
 		I = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+		# I = cv2.resize(I, (64, 64), interpolation=cv2.INTER_NEAREST)
 		
 		# linhas e colunas da imagem
 		self.nrow = I.shape[0]
@@ -142,7 +143,15 @@ class Map:
 		px = (qx - self.xlim[0])*self.mx
 		py = self.nrow - (qy - self.ylim[0])*self.my
 		
-		return px, py
+		return int(px), int(py)
+
+	def px2mts(self,px,py):
+
+		# conversao
+		qx = float( (px/self.mx) + self.xlim[0] )
+		qy = float( ((self.nrow - py)/self.my) + self.ylim[0] )
+		
+		return np.array([qx, qy])
 		
 	########################################
 	# desenha a imagem distorcida em metros
@@ -169,9 +178,14 @@ class Map:
 		plt.ylim(self.ylim)
 	
 	########################################
-	def getMap(self):
+	def getMapImage(self):
 		img = cv2.resize(self.mapa_obs, (64, 64), interpolation=cv2.INTER_NEAREST)
 		return img
+
+	########################################
+	def getMap(self):
+		n_map = np.where(self.mapa_obs==255,0,1)
+		return n_map
 
 	#######################################
 	def getObstacles(self):

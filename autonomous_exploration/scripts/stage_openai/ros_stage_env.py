@@ -149,7 +149,14 @@ class StageEnvironment(gym.Env):
 			print("wainting Map!")
 			rospy.sleep(1)
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# CHANGE HERE
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_frontier = np.zeros(self.frontier.shape)
+		for k in range(len(self.frontier)):
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
+
+		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state
 
@@ -158,7 +165,14 @@ class StageEnvironment(gym.Env):
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# CHANGE HERE
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_frontier = np.zeros(self.frontier.shape)
+		for k in range(len(self.frontier)):
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
+
+		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state
 
@@ -354,8 +368,14 @@ class StageEnvironment(gym.Env):
 		self.step_count += 1
 
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		# CHANGE HERE
+		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0]-0.32)/0.64)),int(round((self.robot_pose[1]-self.origem_map[1]-0.32)/0.64)),self.robot_pose[2]])
+		n_frontier = np.zeros(self.frontier.shape)
+		for k in range(len(self.frontier)):
+			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0]-0.32)/0.64)),int(round((self.frontier[k][1]-self.origem_map[1]-0.32)/0.64))]
 
+		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state, reward, done
 
@@ -366,7 +386,8 @@ class StageEnvironment(gym.Env):
 
 		if(self.crash == 0):
 			map_reward = 0.07*float(map_gain) #/float(self.freeMap_size)
-			distancy = log(D)
+			# distancy = log(D)
+			distancy = 0.5*D
 			
 			# if (map_reward == 0):
 			# 	re = 0
@@ -451,78 +472,8 @@ class StageEnvironment(gym.Env):
 
 
 
-def _PotControl(robot_pose,goal):
-	d = 0.2
-	k = 1
-	#pot field
-	Ux = k * (goal[0] - robot_pose[0])
-	Uy = k * (goal[1] - robot_pose[1])
-	#feedback_linearization
-	vx = cos(robot_pose[2]) * Ux + sin(robot_pose[2]) * Uy
-	w = -(sin(robot_pose[2]) * Ux)/ d + (cos(robot_pose[2]) * Uy) / d
-	return vx,w
-
-
 def _dist(p1,p2): 
 	return ((p1[0]-p2[0])**2 +(p1[1]-p2[1])**2)**(0.5)
-
-
-
-def feedback_linearization(Ux, Uy, theta_n):
-	d = 0.2
-
-	vx = cos(theta_n) * Ux + sin(theta_n) * Uy
-	w = -(sin(theta_n) * Ux)/ d + (cos(theta_n) * Uy) / d
-
-	return vx, w
-def pot_att(x,y,px,py):
-	D = sqrt((px-x)**2 + (py-y)**2)
-	K = 0.2
-	D_safe = 10.0
-
-	if(D > D_safe):
-		Ux = - D_safe*K*(x - px)/D
-		Uy = - D_safe*K*(y - py)/D
-		U_a = [Ux, Uy]
-	else:
-		Ux = - K*(x - px)
-		Uy = - K*(y - py)
-		U_a = [Ux, Uy]
-
-	return U_a
-
-def pot_rep(theta_n, D, alfa):
-	K = 1.0
-	D_safe = 1.5
-
-	if( D > D_safe):
-		Ux = 0
-		Uy = 0
-		U_r = [Ux, Uy]
-	else:
-
-		grad_x = - cos(alfa*pi/180.0 + theta_n)
-		grad_y = - sin(alfa*pi/180.0 + theta_n)
-		Ux = K * (1.0/D_safe - 1.0/D) * (1.0/D**2) * grad_x 
-		Uy = K * (1.0/D_safe - 1.0/D) * (1.0/D**2) * grad_y
-
-		U_r = [Ux, Uy]
-
-	return U_r
-
-def min_dist(x_n,y_n,theta_n,laser):
-	d_min = laser[0]
-	alfa = 0
-	for i in range(len(laser)):
-		if(laser[i] < d_min):
-			d_min = laser[i]
-			alfa = i
-
-	sx = (cos(theta_n)*(d_min*cos(np.deg2rad(alfa - 180))) + sin(theta_n)*(d_min*sin(np.deg2rad(alfa - 180)))) + x_n
-	sy = (-sin(theta_n)*(d_min*cos(np.deg2rad(alfa - 180))) + cos(theta_n)*(d_min*sin(np.deg2rad(alfa - 180)))) + y_n	
-
-	obs_pos = [sx, sy]
-	return d_min, alfa, obs_pos
 
 
 

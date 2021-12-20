@@ -20,7 +20,6 @@ class Dijkstra:
         resolution: grid resolution [m]
         rr: robot radius[m]
         """
-
         self.min_x = None
         self.min_y = None
         self.max_x = None

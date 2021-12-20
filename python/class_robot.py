@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 CARSIZE = 0.1 # tamanho do robo
 LASER = 10.0 # raio do laser
-VELMAX = 10.0
-CONTROLGAIN = 5.0
+VELMAX = 1.0
+CONTROLGAIN = 1.0
         
 ########################################
 ########################################
@@ -39,7 +39,7 @@ class Robot:
 	
 	########################################
 	# acao de controle para seguir o melhor caminho
-	def control(self):
+	def control(self, path):
 		
 		########################
 		# define a referencia
@@ -51,33 +51,41 @@ class Robot:
 		the_dist = 0.5
 		
 		# calcula a proxima referencia livre de colisao
-		achou = False
-		for v in reversed(self.trajref):
-			if v.dist(position) > the_dist:
-				if v.index >= self.ref.index:
-					if not self.tree.collisionBetweenVertexes(v, position):
-						self.ref = v
-						achou = True
-						break
+		# achou = False
+		# for v in reversed(self.trajref):
+		# 	if v.dist(position) > the_dist:
+		# 		if v.index >= self.ref.index:
+		# 			if not self.tree.collisionBetweenVertexes(v, position):
+		# 				self.ref = v
+		# 				achou = True
+		# 				break
 		
-		# se nao achou, reseta o planejador
-		if not achou:
-			self.ref.index = 0
-			self.resetPlanner()
-			return np.zeros(2)
-		
+		# # se nao achou, reseta o planejador
+		# if not achou:
+		# 	self.ref.index = 0
+		# 	self.resetPlanner()
+		# 	return np.zeros(2)
+	 	
 		########################
 		# joga ref para o controlador
 		########################
 		# calcula o angulo de direcao do controle
-		dx = self.ref.x - position.x
-		dy = self.ref.y - position.y
+		dx = path[0] - position.x
+		dy = path[1] - position.y
 		th = np.arctan2(dy, dx)
-		# calcula velocidade de controle
 		d = np.linalg.norm(np.array([dx, dy]))
-		
-		# comando de velocidade
 		u = CONTROLGAIN*d*np.array([np.cos(th), np.sin(th)])
+
+
+		# dx = self.ref.x - position.x
+		# dy = self.ref.y - position.y
+		# th = np.arctan2(dy, dx)
+		# # calcula velocidade de controle
+		# d = np.linalg.norm(np.array([dx, dy]))
+		
+		# # comando de velocidade
+		# u = CONTROLGAIN*d*np.array([np.cos(th), np.sin(th)])
+
 		return self.satSpeed(u)
 		
 	########################################
@@ -91,16 +99,16 @@ class Robot:
 		
 	########################################
 	# atualiza o modelo do robo
-	def model(self, dt, potentialField = False):
+	def model(self, dt, u, potentialField = False):
 		
 		# integra o tempo
 		self.t += dt
 		
 		# VX e VY
-		u = np.zeros(2)
+		# u = np.zeros(2)
 		# u = np.ones(2)
 		# u = np.asarray([0.0,1.0])
-		u = self.satSpeed(u)
+		# u = self.satSpeed(u)
 
 		# update mapa
 		map_obs = self.mapUpdate()
