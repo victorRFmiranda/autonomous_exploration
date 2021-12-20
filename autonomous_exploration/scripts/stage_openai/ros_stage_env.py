@@ -50,6 +50,7 @@ class StageEnvironment(gym.Env):
 		self.frontier = np.asarray([])
 		self.frontier_anterior = np.zeros((4,2))
 		self.freeMap_size = 0
+		# self.fullMap = self.get_fullMap()
 		
 		self.resol = 0
 		self.width = 0
@@ -86,6 +87,13 @@ class StageEnvironment(gym.Env):
 		# self.pub_traj2 = rospy.Publisher("/traj_points", Path, queue_size=10)
 
 
+
+	# def get_fullMap(self):
+	# 	path = rospy.get_param('/map_dir')
+	# 	img = cv2.imread(path, 0) 
+	# 	mapa = img
+	# 	print(mapa)
+	# 	return mapa
 
 	# def max_freeSpaces(self):
 	# 	file = rospy.get_param("/map_dir")
@@ -133,7 +141,7 @@ class StageEnvironment(gym.Env):
 		msg_pos.position.y = data[1]
 		msg_pos.position.z = 0.0
 		self.pub_pose.publish(msg_pos)
-		print("Pose reseted\n")
+		print("Pose reseted\n", data)
 		rospy.sleep(3)
 
 		# Open Gmapping
@@ -158,7 +166,7 @@ class StageEnvironment(gym.Env):
 
 		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
-		return new_state
+		return new_state, self.robot_pose
 
 		
 
@@ -174,7 +182,7 @@ class StageEnvironment(gym.Env):
 
 		new_state = np.asarray([n_rpose, n_frontier, self.map])
 
-		return new_state
+		return new_state, self.robot_pose
 
 	
 	# Dijkstra
