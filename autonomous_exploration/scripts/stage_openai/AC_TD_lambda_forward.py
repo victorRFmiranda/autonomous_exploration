@@ -420,7 +420,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		# changed_pose = list(bk_state[0])
 		print("Reset pose")
 		print(changed_pose)
-		state,_ = env.reset_pose(changed_pose, False)
+		state,_ = env.reset_pose(changed_pose, True)
 		rospy.sleep(5)
 
 
@@ -567,7 +567,7 @@ np.savetxt(file_path+"predict.txt", y_pred, delimiter=',')
 
 
 sns.set()
-
+fig2 = plt.figure()
 plt.plot(scores)
 plt.ylabel('score')
 plt.xlabel('episodes')

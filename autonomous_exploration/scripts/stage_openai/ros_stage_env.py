@@ -21,6 +21,7 @@ from nav_msgs.msg import Odometry, OccupancyGrid
 import matplotlib.pyplot as plt
 import random
 from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log
+import matplotlib.pyplot as plt
 
 from autonomous_exploration.msg import frontier
 # from a_star import Astar, control
@@ -52,10 +53,6 @@ class StageEnvironment(gym.Env):
 		self.frontier = np.asarray([])
 		self.frontier_anterior = np.zeros((4,2))
 		self.freeMap_size = 0
-
-		## FOR RANDOM START POINT
-		self.fullMap = self.get_fullMap()
-		# rnd_point = self.get_random(self.fullMap)
 		
 		self.resol = 0
 		self.width = 0
@@ -86,8 +83,6 @@ class StageEnvironment(gym.Env):
 
 
 
-
-
 		# START PROGRAMS
 		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
 		rospy.sleep(2)
@@ -111,32 +106,78 @@ class StageEnvironment(gym.Env):
 		rospy.sleep(2)
 
 
+		## FOR RANDOM START POINT
+		self.fullMap = self.get_fullMap()
+		# rnd_point = self.get_random(self.fullMap)
+
+
+
 
 
 
 	def get_fullMap(self):
 		path = rospy.get_param('/map_dir')
 		img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) 
+		img = cv2.resize(img, (150, 200),interpolation=cv2.INTER_NEAREST)
+		# img = img.transpose()
 		w,h = img.shape
-		mapa = []
+		mapa_obst = []
+		mapa_free = []
 		for i in range(w):
 			for j in range(h):
 				if(img[i][j] == 0):
-					mapa.append([(float(i)/(float(h)/50.0)) - 25.0, (float(w - j)/(float(w)/50.0)) - 25.0])
-		return np.asarray(mapa)
+					mapa_obst.append([(float(j)/(float(h)/50.0)) - 25.0, (float(w - i)/(float(w)/50.0)) - 25.0])
+				elif(img[i][j] == 255):
+					mapa_free.append([(float(j)/(float(h)/50.0)) - 25.0, (float(w - i)/(float(w)/50.0)) - 25.0])
+
+		mapa_free = np.asarray(mapa_free)
+		mapa_obst = np.asarray(mapa_obst)
+
+		# print(mapa_obst[:,0])
+
+		# fig = plt.figure()
+		# plt.scatter(mapa_obst[:,0],mapa_obst[:,1])
+		# plt.show()
+
+		mapa = []
+		for k in range(len(mapa_free)):
+			flag_aux = False
+			for l in range(len(mapa_obst)):
+				D = _dist(mapa_free[k],mapa_obst[l])
+				if(D < 5.0):
+					flag_aux = True
+					break
+			if(flag_aux == False):
+				mapa.append([mapa_free[k][0],mapa_free[k][1]])
+
+		mapa = np.asarray(mapa)
+
+		fig = plt.figure()
+		plt.scatter(mapa_obst[:,0],mapa_obst[:,1], c='#7f7f7f')
+		# plt.scatter(mapa_free[:,0],mapa_free[:,1], c='#e377c2')
+		plt.scatter(mapa[:,0],mapa[:,1])
+		plt.show()
+		return mapa
 
 	def get_random(self, mapa):
-		while True:
-			flag_roll = False
-			n_point = np.asarray([random.uniform(-25.0, 25.0), random.uniform(-25.0, 25.0)])
-			print("Ponto = ", n_point)
-			for i in range(len(mapa)):
-				if(_dist(n_point,mapa[i]) < 8.0):
-					flag_roll = True
-					break
+		# while True:
+		# 	flag_roll = False
+		# 	n_point = np.asarray([random.uniform(-25.0, 25.0), random.uniform(-25.0, 25.0)])
+		# 	print("Ponto = ", n_point)
+		# 	for i in range(len(mapa)):
+		# 		D = _dist(n_point,mapa[i])
+		# 		print("Distance = %f" % D)
+		# 		if(D < 20.0):
+		# 			flag_roll = True
+		# 			break
 
-			if not flag_roll:
-				break
+		# 	if not flag_roll:
+		# 		break
+
+		idx = np.random.randint(len(mapa))
+		n_point = mapa[idx]
+		# n_point = mapa[np.random.choice(mapa.shape[0], 1, replace=False), :][0]
+		print(n_point)
 
 		return n_point
 
@@ -223,10 +264,13 @@ class StageEnvironment(gym.Env):
 			print("wainting Map!")
 			rospy.sleep(1)
 
+		while not self.check_nodes():
+			rospy.sleep(1)
+
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
 		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros(self.frontier.shape)
+		n_frontier = np.zeros((len(self.frontier),2))
 		for k in range(len(self.frontier)):
 			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
@@ -242,7 +286,7 @@ class StageEnvironment(gym.Env):
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
 		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros(self.frontier.shape)
+		n_frontier = np.zeros((len(self.frontier),2))
 		for k in range(len(self.frontier)):
 			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
@@ -446,7 +490,7 @@ class StageEnvironment(gym.Env):
 		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
 		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros(self.frontier.shape)
+		n_frontier = np.zeros((len(self.frontier),2))
 		for k in range(len(self.frontier)):
 			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
