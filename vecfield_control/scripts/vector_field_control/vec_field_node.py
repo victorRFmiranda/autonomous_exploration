@@ -17,8 +17,10 @@ from tf2_msgs.msg import TFMessage
 from visualization_msgs.msg import Marker, MarkerArray
 from math import cos, sin
 
-import rviz_helper
-import vec_field_controller
+from .rviz_helper import *
+from .vec_field_controller import *
+# import rviz_helper
+# import vec_field_controller
 
 
 class VecFieldNode(object):
@@ -59,7 +61,7 @@ class VecFieldNode(object):
 
         self.init_node()
 
-        self.vec_field_obj = vec_field_controller.VecFieldController(self.v_r, self.k_f, self.d_feedback, self.epsilon,
+        self.vec_field_obj = VecFieldController(self.v_r, self.k_f, self.d_feedback, self.epsilon,
                                                                      self.switch_dist, self.is_forward_motion,
                                                                      self.flag_follow_obstacle)
 

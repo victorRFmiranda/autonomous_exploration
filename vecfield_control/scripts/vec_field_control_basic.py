@@ -82,7 +82,7 @@ class VecFieldNodeBasic(vec_field_node.VecFieldNode):
                 rviz_helper.send_marker_to_rviz(Vx_ref, Vy_ref, self.pos, self.pub_rviz_ref)
 
             except:
-                print "\33[93mTemporary problem in the computation of the field !\33[0m"
+                print("\33[93mTemporary problem in the computation of the field !\33[0m")
 
 
             rate.sleep()

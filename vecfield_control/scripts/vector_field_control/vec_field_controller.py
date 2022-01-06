@@ -66,8 +66,8 @@ class VecFieldController:
 
         self.phi_m = math.atan2(y, x)
         self.delta_m = math.sqrt(x * x + y * y)
-        print "self.phi_m: ", self.phi_m
-        print "self.delta_m: ", self.delta_m
+        print("self.phi_m: ", self.phi_m)
+        print("self.delta_m: ", self.delta_m)
 
     def set_trajectory(self, traj, insert_n_points, filter_path_n_average, closed_path_flag):
         """Callback to obtain the trajectory to be followed by the robot
