@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import rospy
 from config import Config
 from ros_stage_env import StageEnvironment
@@ -163,9 +162,11 @@ def select_action(network, state, ccnetwork):
 	#sample an action using the probability distribution
 	m = Categorical(action_probs)
 	action = m.sample()
+
+	lp = m.log_prob(action)
 	
 	#return action
-	return action.item(), m.log_prob(action)
+	return action.item(), lp
 
 
 
@@ -296,6 +297,9 @@ def train_policy(deltas, log_probs, optimizer):
 	
 	#store updates
 	policy_loss = []
+
+	print(deltas)
+	print(log_probs)
 	
 	#calculate loss to be backpropagated
 	for d, lp in zip(deltas, log_probs):

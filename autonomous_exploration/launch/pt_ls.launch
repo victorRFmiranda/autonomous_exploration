@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+    <param name="use_sim_time" value="false"/> 
+
+    <!-- PointCloud to LaserScan -->
+    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="point_to_scan" args="-d cloud_in:=/velodyne/points2">
+        <param name="range_max" value="8.0"/>
+        <!-- <param name="angle_min" value="-6.283185307179586"/> -->
+        <!-- <param name="angle_max" value="6.283185307179586"/> -->
+        <param name="angle_min" value="-3.141592653589793"/>
+        <param name="angle_max" value="3.141592653589793"/>
+    </node>
+
+
+    <!-- Octomap -->
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+        <param name="resolution" value="0.1" />
+        <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+        <param name="frame_id" type="string" value="world" />
+        <!-- maximum range to integrate (speedup!) -->
+        <param name="sensor_model/max_range" value="8.0" />
+        <!--param name ="filter_ground" value="true" /-->
+        <!-- <param name="ground_filter/plane_distance" value = "0.1" />
+        <param name="ground_filter/distance" value = "0.1" /> -->
+        <param name="pointcloud_min_z" type="double" value="-0.2" />
+        <!-- data source to integrate (PointCloud2) -->
+        <remap from="cloud_in" to="/velodyne/points2" />
+        <!-- <param name="base_frame_id" value="os1_sensor" /> -->
+    </node>
+    
+</launch>
