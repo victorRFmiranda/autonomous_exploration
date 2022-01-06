@@ -335,7 +335,7 @@ def train_value(G, state_vals, optimizer):
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path('autonomous_exploration')
 file_path = pkg_path + "/scripts/stage_openai/model/"
-LOAD_NETWORK = False
+LOAD_NETWORK = True
 
 args = Config().parse()
 
@@ -350,7 +350,7 @@ MAX_STEPS = args.MAX_STEPS
 # number of states (ANN inputs)
 NUM_STATES = args.num_states
 #device to run model on 
-#DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DEVICE = "cpu"
 
 if torch.cuda.is_available():
@@ -363,7 +363,7 @@ CRITIC_LAMBDA = args.CRITIC_LAMBDA
 
 
 #Make environment
-env = StageEnvironment(args)
+env = StageEnvironment(args, False)
 
 while(env.observation_space.shape[0] == 0):
 	rospy.sleep(1)
@@ -420,7 +420,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		# changed_pose = list(bk_state[0])
 		print("Reset pose")
 		print(changed_pose)
-		state,_ = env.reset_pose(changed_pose, True)
+		state,_ = env.reset_pose(changed_pose)
 		rospy.sleep(5)
 
 
@@ -446,10 +446,11 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 
 		#select action
 		action, lp = select_action(policy_network, state, concat_network)
+		print("action :=", action)
+
 	
 		
 		#execute action
-		# think in my case: if the actions is correct reward = 1 and done = false, else reward = 1 and done = true
 		new_state, reward, done = env.step(action)  
 
 		# print("reward = ", reward)

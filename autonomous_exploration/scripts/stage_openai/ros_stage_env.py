@@ -35,7 +35,7 @@ from vecfield_control.msg import Path
 
 
 class StageEnvironment(gym.Env):
-	def __init__(self,args):
+	def __init__(self,args,flag_rnd):
 
 		self.action_space = args.num_actions		# num frontiers (fixed)
 		# self.observation_space = args.num_states
@@ -66,6 +66,7 @@ class StageEnvironment(gym.Env):
 		self.crash = 0
 		self.flag_control = 0
 		self.flag_frontier = 1
+		self.flag_rnd = flag_rnd
 
 		rospy.init_node("Stage_environment", anonymous=True)
 		rospy.Subscriber("/crash_stall", Int32, self.callback_crashStatus)
@@ -107,7 +108,8 @@ class StageEnvironment(gym.Env):
 
 
 		## FOR RANDOM START POINT
-		self.fullMap = self.get_fullMap()
+		if(self.flag_rnd):
+			self.fullMap = self.get_fullMap()
 		# rnd_point = self.get_random(self.fullMap)
 
 
@@ -133,12 +135,6 @@ class StageEnvironment(gym.Env):
 		mapa_free = np.asarray(mapa_free)
 		mapa_obst = np.asarray(mapa_obst)
 
-		# print(mapa_obst[:,0])
-
-		# fig = plt.figure()
-		# plt.scatter(mapa_obst[:,0],mapa_obst[:,1])
-		# plt.show()
-
 		mapa = []
 		for k in range(len(mapa_free)):
 			flag_aux = False
@@ -152,11 +148,6 @@ class StageEnvironment(gym.Env):
 
 		mapa = np.asarray(mapa)
 
-		fig = plt.figure()
-		plt.scatter(mapa_obst[:,0],mapa_obst[:,1], c='#7f7f7f')
-		# plt.scatter(mapa_free[:,0],mapa_free[:,1], c='#e377c2')
-		plt.scatter(mapa[:,0],mapa[:,1])
-		plt.show()
 		return mapa
 
 	def get_random(self, mapa):
@@ -196,13 +187,13 @@ class StageEnvironment(gym.Env):
 		node = "/stageros"
 		os.system("rosnode kill "+ node)
 		time.sleep(1)
-		os.system("gnome-terminal -x roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
+		os.system("gnome-terminal -- roslaunch autonomous_exploration test_stage.launch map:="+self.maps[self.map_count])
 		time.sleep(1)
 		print("map changed")
 		self.map_count += 1
 
 	# restart stage (robot back to the init position) - change the robot pose in training code
-	def reset_pose(self, data, flag_rnd):
+	def reset_pose(self, data):
 
 		# KIll Control
 		node = "/vecfield_control"
@@ -220,7 +211,7 @@ class StageEnvironment(gym.Env):
 		
 		# Reset Pose
 		msg_pos = Pose()
-		if flag_rnd:
+		if self.flag_rnd:
 			rnd_point = self.get_random(self.fullMap)
 			data = np.asarray([rnd_point[0],rnd_point[1],0.0])
 		
@@ -237,7 +228,7 @@ class StageEnvironment(gym.Env):
 		rospy.sleep(3)
 
 		# Open Gmapping
-		if flag_rnd:
+		if self.flag_rnd:
 			broadcaster = tf2_ros.StaticTransformBroadcaster()
 			static_transformStamped = TransformStamped()
 			static_transformStamped.header.stamp = rospy.Time.now()
@@ -267,14 +258,14 @@ class StageEnvironment(gym.Env):
 		while not self.check_nodes():
 			rospy.sleep(1)
 
-		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros((len(self.frontier),2))
-		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
+		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
+		# n_frontier = np.zeros((len(self.frontier),2))
+		# for k in range(len(self.frontier)):
+		# 	n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
-		new_state = np.asarray([n_rpose, n_frontier, self.map])
+		# new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state, self.robot_pose
 
@@ -283,14 +274,14 @@ class StageEnvironment(gym.Env):
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
 
-		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros((len(self.frontier),2))
-		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
+		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
+		# n_frontier = np.zeros((len(self.frontier),2))
+		# for k in range(len(self.frontier)):
+		# 	n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
-		new_state = np.asarray([n_rpose, n_frontier, self.map])
+		# new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state, self.robot_pose
 
@@ -423,7 +414,12 @@ class StageEnvironment(gym.Env):
 			print("Reseting Mapping")
 		# check detect frontiers
 		if not (node_list.count('/Detect_frontier')):
-			flag = False
+			node = "/Detect_frontier"
+			os.system("rosnode kill "+node)
+			rospy.sleep(2)
+			os.system("gnome-terminal -- rosrun autonomous_exploration frontier_lidar.py __name:=Detect_frontier")
+			rospy.sleep(2)
+			# flag = False
 			print("Reseting Detect Frontiers")
 		# check stage
 		if not (node_list.count('/stageros')):
@@ -459,7 +455,7 @@ class StageEnvironment(gym.Env):
 
 				if(planning_fail):
 					print("\33[41m Planning failure, return! \33[0m")
-					reward = 0
+					reward = -10
 
 				else:
 
@@ -487,14 +483,14 @@ class StageEnvironment(gym.Env):
 		self.step_count += 1
 
 
-		# new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
 		# CHANGE HERE
-		n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
-		n_frontier = np.zeros((len(self.frontier),2))
-		for k in range(len(self.frontier)):
-			n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
+		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
+		# n_frontier = np.zeros((len(self.frontier),2))
+		# for k in range(len(self.frontier)):
+		# 	n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
-		new_state = np.asarray([n_rpose, n_frontier, self.map])
+		# new_state = np.asarray([n_rpose, n_frontier, self.map])
 
 		return new_state, reward, done
 
@@ -505,8 +501,8 @@ class StageEnvironment(gym.Env):
 
 		if(self.crash == 0):
 			map_reward = 0.07*float(map_gain) #/float(self.freeMap_size)
-			# distancy = log(D)
-			distancy = 0.5*D
+			distancy = log(D)
+			# distancy = 0.5*D
 			
 			# if (map_reward == 0):
 			# 	re = 0
