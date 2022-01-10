@@ -67,11 +67,13 @@ class DQN(nn.Module):
 		super(DQN, self).__init__()
 
 		self.dense = nn.Sequential(
-			nn.Linear(input_shape, 512),
+			nn.Linear(input_shape, 128),
 			nn.ReLU(),
-			nn.Linear(512,512),
+			nn.Linear(128,256),
 			nn.ReLU(),
-			nn.Linear(512, n_actions)
+			nn.Linear(256,128),
+			nn.ReLU(),
+			nn.Linear(128, n_actions)
 		)
 
 
@@ -109,6 +111,7 @@ class DQN(nn.Module):
 		# return self.fc(out)
 
 
+steps_done = 0
 
 def select_action(state):
 	global steps_done
@@ -129,16 +132,15 @@ def select_action(state):
 
 
 n_actions = 5
-state_dim = 11
-num_episodes = 2000
-num_steps = 200
+state_dim = 30
+num_episodes = 5000
+num_steps = 80
 
 policy_net = DQN(state_dim, n_actions).to(device)
 target_net = DQN(state_dim, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
-steps_done = 0
 
 optimizer = optim.RMSprop(policy_net.parameters())
 memory = ReplayMemory(10000)
@@ -147,6 +149,16 @@ memory = ReplayMemory(10000)
 
 episode_durations = []
 scores = []
+
+def save_plot(scores):
+    plt.figure(2)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Score')
+    plt.plot(scores)
+
+    plt.savefig('EXP_Espeleo.png')
 
 def plot_durations():
 	plt.figure(2)
@@ -237,7 +249,7 @@ for i_episode in range(num_episodes):
 		print(t)
 		action = select_action(state)
 		action_cp = action.to('cpu').data.numpy().item()
-		# print("action :=", test.data.numpy().item())
+		print("action :=", action_cp)
 
 		reward, next_state, done = env.step(action_cp)
 		score += reward
@@ -269,14 +281,9 @@ for i_episode in range(num_episodes):
 
 
 
+save_plot(scores)
 
 print('Completed episodes')
 env.shutdown()
 
 
-np.savetxt(join(dirname(abspath(__file__)),'scores.txt'), scores, delimiter=',')
-fig2 = plt.figure()
-plt.plot(scores)
-plt.ylabel('score')
-plt.xlabel('episodes')
-plt.title('Training score')

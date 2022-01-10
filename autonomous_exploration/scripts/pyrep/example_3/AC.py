@@ -3,6 +3,7 @@
 import rospy
 import argparse
 import numpy as np
+import random
 from itertools import count
 from collections import namedtuple
 import matplotlib
@@ -21,7 +22,7 @@ from espeleo_env import Environment
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
-parser.add_argument('--seed', type=int, default=543, metavar='N',
+parser.add_argument('--seed', type=int, default=0, metavar='N',
                     help='random seed (default: 543)')
 parser.add_argument('--render', action='store_true',
                     help='render the environment')
@@ -52,13 +53,13 @@ class Policy(nn.Module):
     """
     def __init__(self):
         super(Policy, self).__init__()
-        self.affine1 = nn.Linear(30, 256)
+        self.affine1 = nn.Linear(30, 128)
 
         # actor's layer
-        self.action_head = nn.Linear(256, 5)
+        self.action_head = nn.Linear(128, 5)
 
         # critic's layer
-        self.value_head = nn.Linear(256, 1)
+        self.value_head = nn.Linear(128, 1)
 
         # action & reward buffer
         self.saved_actions = []
@@ -84,25 +85,39 @@ class Policy(nn.Module):
 
 
 model = Policy()
-optimizer = optim.Adam(model.parameters(), lr=1e-2)
+optimizer = optim.Adam(model.parameters(), lr=3e-4)
 eps = np.finfo(np.float32).eps.item()
 
 
-def select_action(state):
-    state = torch.from_numpy(state).float().unsqueeze(0)
+def select_action(state, eps):
+    state = torch.from_numpy(state).float()
+    model.eval()
     probs, state_value = model(state)
 
-    # create a categorical distribution over the list of probabilities of actions
-    m = Categorical(probs)
+
+    # action = np.argmax(probs.cpu().data.numpy())
+    # model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
+
+    
 
     # and sample an action using the distribution
-    action = m.sample()
+    if(random.random() > eps):
+        action = np.argmax(probs.cpu().data.numpy())
+        model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
+        print("\33[92m Categorical Sample \33[0m")
+    else:
+        action = random.choice(np.arange(5))
+        model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
+        # print("\33[41m Aleatório \33[0m")
+
+    # m = Categorical(probs)
+    # action = m.sample()
 
     # save to action buffer
-    model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
+    # model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
 
-    # the action to take (left or right)
-    return action.item()
+    # return action.item()
+    return action
 
 
 def finish_episode():
@@ -194,8 +209,10 @@ def plot_durations():
 
 
 rospy.sleep(5)
+episode_length = int(50)
 # def main():
 running_reward = 10
+eps = 1.0
 
 # run inifinitely many episodes
 for i_episode in count(1):
@@ -207,12 +224,15 @@ for i_episode in count(1):
     # print(state.shape)
     ep_reward = 0
 
+    if(i_episode >= 500):
+        episode_length = int(150)
+
     # for each episode, only run 9999 steps so that we don't 
     # infinite loop while learning
-    for t in range(1, 100):
+    for t in range(1, episode_length):
 
         # select action from policy
-        action = select_action(state)
+        action = select_action(state,eps)
         print("Action :=", action)
 
         # take the action
@@ -224,6 +244,8 @@ for i_episode in count(1):
         ep_reward += reward
         if done:
             break
+
+    eps = max(0.01, 0.99*eps)
 
     episode_durations.append(t+1)
     scores.append(ep_reward)

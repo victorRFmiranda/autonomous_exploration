@@ -158,8 +158,6 @@ def main():
 
         # reset environment and episode reward
         state = env.reset()
-        print(type(state))
-        print(state.shape)
         ep_reward = 0
 
         # for each episode, only run 9999 steps so that we don't 
@@ -168,6 +166,7 @@ def main():
 
             # select action from policy
             action = select_action(state)
+            print("Action :=", action)
 
             # take the action
             state, reward, done, _ = env.step(action)

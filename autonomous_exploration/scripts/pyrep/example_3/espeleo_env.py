@@ -14,7 +14,7 @@ from os.path import dirname, join, abspath
 import numpy as np
 from collections import deque
 import time
-from math import atan2
+from math import atan2, pi
 
 
 # Network
@@ -49,7 +49,7 @@ class Environment(object):
 		self.pr = PyRep()
 		# Launch the application with a scene file
 		# headless: TRUE - NO Graphics / FALSE - Open Coppelia
-		self.pr.launch(SCENE_FILE, headless=True)
+		self.pr.launch(SCENE_FILE, headless=False)
 
 		# Start sim
 		self.pr.start()  # Start the simulation
@@ -126,19 +126,33 @@ class Environment(object):
 		# 						[self.closest_point,self.closest_direction]])
 
 
+	def aleatory_pose(self):
+		vec_x = [[0,5],[6,9],[6,8]]
+		vec_y = [[-1,1],[2,5],[-5,-2]]
+		aux = np.random.randint(3)
+
+		x = np.random.uniform(vec_x[aux][0],vec_x[aux][1])
+		y = np.random.uniform(vec_y[aux][0],vec_y[aux][1])
+
+		q = quaternion_from_euler(0, 0, np.random.uniform(-pi,pi))
+
+		return x, y, q
+
 	def reset(self):
 		self.initiate_memory()
 
 		pos = list(np.random.uniform(self.pos_min, self.pos_max))
 		self.target.set_position(pos)
+
+		x,y, q = self.aleatory_pose()
 		r_newPose = Pose()
-		r_newPose.position.x = self.initial_pose[0]
-		r_newPose.position.y = self.initial_pose[1]
-		r_newPose.position.z = self.initial_pose[2]
-		r_newPose.orientation.x = self.initial_pose[3]
-		r_newPose.orientation.y = self.initial_pose[4]
-		r_newPose.orientation.z = self.initial_pose[5]
-		r_newPose.orientation.w = self.initial_pose[6]
+		r_newPose.position.x = x
+		r_newPose.position.y = y
+		r_newPose.position.z = 0.0
+		r_newPose.orientation.x = q[0]
+		r_newPose.orientation.y = q[1]
+		r_newPose.orientation.z = q[2]
+		r_newPose.orientation.w = q[3]
 		self.set_pose.publish(r_newPose)
 
 
@@ -186,7 +200,7 @@ class Environment(object):
 		vel_msg.linear.x = V
 		vel_msg.angular.z = W
 		self.pub_vel.publish(vel_msg)
-		for i in range(10):
+		for i in range(2):
 			self.pr.step()
 			time.sleep(0.01)
 
@@ -208,10 +222,10 @@ class Environment(object):
 
 		if (self.collision):
 			done = True
-			reward = -20
+			reward = -200
 		elif(D <= 0.5):
 			done = True
-			reward = 50
+			reward = 200
 		else:
 			done = False
 
