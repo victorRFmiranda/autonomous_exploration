@@ -298,8 +298,8 @@ def train_policy(deltas, log_probs, optimizer):
 	#store updates
 	policy_loss = []
 
-	print(deltas)
-	print(log_probs)
+	# print(deltas)
+	# print(log_probs)
 	
 	#calculate loss to be backpropagated
 	for d, lp in zip(deltas, log_probs):

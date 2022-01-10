@@ -440,6 +440,10 @@ class StageEnvironment(gym.Env):
 		if(self.flag_frontier and flag_nodes):
 
 			try:
+				# print("Fronteiras := ", [_dist(self.robot_pose,self.frontier[0]),
+				# 						_dist(self.robot_pose,self.frontier[1]),
+				# 						_dist(self.robot_pose,self.frontier[2]),
+				# 						_dist(self.robot_pose,self.frontier[3])])
 				f_def = self.detect_action(action)
 
 				
@@ -508,7 +512,8 @@ class StageEnvironment(gym.Env):
 			# 	re = 0
 			# else:
 			# re = 0.5*D + map_reward
-			re = distancy + map_reward
+			# re = distancy + map_reward
+			re = map_reward
 
 			print("\33[92m Map Reward = %f \33[0m" % map_reward)
 			print("\33[94m Distance Reward = %f \33[0m" % distancy)
