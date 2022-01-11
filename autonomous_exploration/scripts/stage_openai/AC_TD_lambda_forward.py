@@ -12,12 +12,16 @@ from torch.distributions import Categorical
 
 import numpy as np
 from collections import deque
+import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import seaborn as sns
  
  
-
+# set up matplotlib
+is_ipython = 'inline' in matplotlib.get_backend()
+if is_ipython:
+	from IPython import display
 
 def conv_block(input_size, output_size):
 	block = nn.Sequential(
@@ -28,13 +32,31 @@ def conv_block(input_size, output_size):
 	return block
  
 
+def conv2d_size_out(size, kernel_size = 5, stride = 2):
+			return (size - (kernel_size - 1) - 1) // stride  + 1
 
 class ConcatNetwork(nn.Module):
 	def __init__(self):
 		super(ConcatNetwork, self).__init__()
 		# test convolution
-		self.conv1 = conv_block(1, 4)
-		self.ln1 = nn.Linear(4 * 16 * 16, 32)
+		# self.conv1 = conv_block(1, 4)
+		# self.ln1 = nn.Linear(4 * 16 * 16, 32)
+
+		self.conv = nn.Sequential(
+				nn.Conv2d(1,16,kernel_size=5,stride=2),
+				nn.BatchNorm2d(16),
+				nn.ReLU(),
+				nn.Conv2d(16,32,kernel_size=5,stride=2),
+				nn.BatchNorm2d(32),
+				nn.ReLU(),
+				nn.Conv2d(32,32,kernel_size=5,stride=2),
+				nn.BatchNorm2d(32),
+				nn.ReLU(),
+				)
+		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))  # image 96x96
+		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))
+		linear_input_size = convw * convh * 32
+		self.dense = nn.Linear(linear_input_size,4)	# 4 actions
 
 
 	def forward(self, x):
@@ -42,9 +64,14 @@ class ConcatNetwork(nn.Module):
 		x[1] = x[1].view(x[1].size(0), -1)
 
 		# conv image
-		x[2] = self.conv1(x[2])
-		x[2] = x[2].view(x[2].size(0), -1)
-		x[2] = self.ln1(x[2])
+		# x[2] = self.conv1(x[2])
+		# x[2] = x[2].view(x[2].size(0), -1)
+		# x[2] = self.ln1(x[2])
+		x[2] = self.conv(x[2])
+		# x[2] = x[2].view(x[2].size(0), -1)
+		# print("Net shape :=", x[2].shape)
+
+		x[2] = self.dense(x[2].view(x[2].size(0), -1))
 
 
 		x = torch.cat((x[0], x[1], x[2]), dim=1)
@@ -333,13 +360,44 @@ def train_value(G, state_vals, optimizer):
 
 
 
+episode_durations = []
+scores = []
+
+def plot_():
+	plt.figure(2)
+	plt.clf()
+	durations_t = torch.tensor(episode_durations, dtype=torch.float)
+	scores_t = torch.tensor(scores, dtype=torch.float)
+	plt.title('Training...')
+	plt.xlabel('Episode')
+	# plt.ylabel('Duration')
+	# plt.plot(durations_t.numpy())
+	plt.ylabel('Score')
+	plt.plot(scores_t.numpy())
+
+	# Take 100 episode averages and plot them too
+	# if len(durations_t) >= 100:
+	# 	means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+	# 	means = torch.cat((torch.zeros(99), means))
+	# 	plt.plot(means.numpy())
+	if len(durations_t) >= 5:
+		means = scores_t.unfold(0, 5, 1).mean(1).view(-1)
+		means = torch.cat((torch.zeros(4), means))
+		plt.plot(means.numpy())
+
+	plt.pause(0.001)  # pause a bit so that plots are updated
+	if is_ipython:
+		display.clear_output(wait=True)
+		display.display(plt.gcf())
+
+
 
 
 ########### MAIN ##############
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path('autonomous_exploration')
 file_path = pkg_path + "/scripts/stage_openai/model/"
-LOAD_NETWORK = True
+LOAD_NETWORK = False
 
 args = Config().parse()
 
@@ -388,16 +446,16 @@ else:
 concat_network = ConcatNetwork().to(DEVICE)
 
 #Init optimizer
-policy_optimizer = optim.Adam(policy_network.parameters(), lr=1e-2)
-stateval_optimizer = optim.Adam(stateval_network.parameters(), lr=1e-2)
+policy_optimizer = optim.Adam(policy_network.parameters(), lr=1e-6)
+stateval_optimizer = optim.Adam(stateval_network.parameters(), lr=1e-6)
 
 
 
 #track scores
-scores = []
+# scores = []
 
 #recent 100 scores
-recent_scores = deque(maxlen=100)
+recent_scores = deque(maxlen=10000)
 flag_change = False
 flag_first = True
 changed_pose = []
@@ -455,7 +513,7 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 	
 		
 		#execute action
-		new_state, reward, done = env.step(action)  
+		new_state, reward, done = env.step(action) 
 
 		# print("reward = ", reward)
 
@@ -466,6 +524,9 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		
 		#store into trajectory
 		trajectory.append([state, action, reward, lp])
+
+		#
+		state = new_state 
 		
 		#end episode - in failure case
 		# if done or score < -5	:
@@ -485,6 +546,8 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 	#append score
 	scores.append(score)
 	recent_scores.append(score)
+	episode_durations.append(step+1)
+	plot_()
 
 	print("Score = %d" % np.array(recent_scores).mean())
 	# print("Action = ", action)
@@ -534,21 +597,20 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		torch.save(policy_network, file_path+"actor.pkl")
 		torch.save(stateval_network, file_path+"critic.pkl")
 
-
 		np.savetxt(file_path+"scores.txt", scores, delimiter=',')
 
 		# sns.set()
-		plt.ion()
-		fig = plt.figure()
-		plt.plot(scores)
-		plt.ylabel('score')
-		plt.xlabel('episodes')
-		plt.title('Training score with Forward-view TD')
-		fig.savefig(file_path+"/figures/partial.png", dpi=fig.dpi)
-		plt.draw()
-		plt.show()
-		plt.pause(0.1)
-		plt.close('all')
+		# plt.ion()
+		# fig = plt.figure()
+		# plt.plot(scores)
+		# plt.ylabel('score')
+		# plt.xlabel('episodes')
+		# plt.title('Training score with Forward-view TD')
+		# fig.savefig(file_path+"/figures/partial.png", dpi=fig.dpi)
+		# plt.draw()
+		# plt.show()
+		# plt.pause(0.1)
+		# plt.close('all')
 
 
 	rate.sleep()

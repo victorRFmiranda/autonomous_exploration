@@ -445,6 +445,8 @@ class StageEnvironment(gym.Env):
 				# 						_dist(self.robot_pose,self.frontier[2]),
 				# 						_dist(self.robot_pose,self.frontier[3])])
 				f_def = self.detect_action(action)
+				# print("Dist :=", self.f_angles)
+				# print("Frontiers :=", self.frontier)
 
 				
 				D = _dist(self.robot_pose,f_def)
@@ -533,25 +535,41 @@ class StageEnvironment(gym.Env):
 		self.robot_pose = np.asarray(self.robot_pose)
 
 	def callback_frontier(self, data):
+		self.frontier_aux = []
 		self.frontier = []
+		self.f_angles = []
+		dist = []
 		for i in range(len(data.clusters)):
-			self.frontier.append([data.clusters[i].x,data.clusters[i].y])
+			self.frontier_aux.append([data.clusters[i].x,data.clusters[i].y])
+			dist.append(_dist([data.clusters[i].x,data.clusters[i].y],[self.robot_pose[0],self.robot_pose[1]]))
+			# self.f_angles.append(np.arctan2(data.clusters[i].y-self.robot_pose[1],data.clusters[i].x-self.robot_pose[0]))
+
+		# self.frontier_aux = np.asarray(self.frontier_aux)
+		self.f_angles = np.asarray(dist)
+		# frontier_aux = list()
+		# frontier_aux = self.frontier
+
+		# k = 0
+		for idx in np.argsort(dist):
+			self.frontier.append(self.frontier_aux[idx])
+			# k +=1
 
 		self.frontier = np.asarray(self.frontier)
+
+
+		
 		self.freeMap_size = data.map_increase.data
 
 	def callback_image(self, data):
 		bridge = CvBridge()
 		# img2 = bridge.imgmsg_to_cv2(data, desired_encoding='mono16')
-		img2 = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
-		img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+		img = bridge.imgmsg_to_cv2(data, desired_encoding='rgb8')
+		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 		# np.savetxt('normal.txt', img2, delimiter=',')
 		# print("\nNormal\n\n")
 		# print(img2)
-		img = cv2.resize(img2, (64, 64),interpolation=cv2.INTER_NEAREST)
-		# print("\n\nRESIZED\n\n")
-		# print(img)
-		# np.savetxt('resized.txt', img2, delimiter=',')
+		# img = cv2.resize(img2, (64, 64),interpolation=cv2.INTER_NEAREST)
+		img = cv2.resize(img, (96, 96),interpolation=cv2.INTER_NEAREST)
 		img = img.transpose()
 		img = img/255.0
 		img = img.astype('float32')

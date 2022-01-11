@@ -29,11 +29,11 @@ if is_ipython:
 
 # hyperparameters
 hidden_size = 256
-learning_rate = 3e-4
+learning_rate = 1e-6
 
 # Constants
 GAMMA = 0.99
-num_steps = 5
+num_steps = 10
 max_episodes = 200
 
 
@@ -71,7 +71,7 @@ class ConcatNetwork(nn.Module):
 
 
 class ActorCritic(nn.Module):
-	def __init__(self, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
+	def __init__(self, num_inputs, num_actions, hidden_size, learning_rate=1e-6):
 		super(ActorCritic, self).__init__()
 
 		self.cc_network = ConcatNetwork()
