@@ -173,6 +173,8 @@ def select_action(network, state, ccnetwork):
 	- (int): action that is selected
 	- (float): log probability of selecting that action given state and network
 	'''
+
+	state = np.asarray(state)
 	
 	#convert state to float tensor, add 1 dimension, allocate tensor on device
 	state_v = []
@@ -506,9 +508,13 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		#env.render()
 		
 
-		#select action
-		action, lp = select_action(policy_network, state, concat_network)
-		print("action :=", action)
+		try:
+			#select action
+			action, lp = select_action(policy_network, state, concat_network)
+			# print("action :=", action)
+		except:
+			print("State :=", state)
+			print("State Type :=", type(state))
 
 	
 		

@@ -258,7 +258,7 @@ class StageEnvironment(gym.Env):
 		while not self.check_nodes():
 			rospy.sleep(1)
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map],dtype=object)
 		# CHANGE HERE
 		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		# n_frontier = np.zeros((len(self.frontier),2))
@@ -274,7 +274,7 @@ class StageEnvironment(gym.Env):
 	def reset(self):
 		rospy.wait_for_service('reset_positions')
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map],dtype=object)
 		# CHANGE HERE
 		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		# n_frontier = np.zeros((len(self.frontier),2))
@@ -415,11 +415,11 @@ class StageEnvironment(gym.Env):
 		# check detect frontiers
 		if not (node_list.count('/Detect_frontier')):
 			node = "/Detect_frontier"
-			os.system("rosnode kill "+node)
-			rospy.sleep(2)
-			os.system("gnome-terminal -- rosrun autonomous_exploration frontier_lidar.py __name:=Detect_frontier")
-			rospy.sleep(2)
-			# flag = False
+			# os.system("rosnode kill "+node)
+			# rospy.sleep(2)
+			# os.system("gnome-terminal -- rosrun autonomous_exploration frontier_lidar.py __name:=Detect_frontier")
+			# rospy.sleep(2)
+			flag = False
 			print("Reseting Detect Frontiers")
 		# check stage
 		if not (node_list.count('/stageros')):
@@ -489,7 +489,7 @@ class StageEnvironment(gym.Env):
 		self.step_count += 1
 
 
-		new_state = np.asarray([self.robot_pose, self.frontier, self.map])
+		new_state = np.asarray([self.robot_pose, self.frontier, self.map],dtype=object)
 		# CHANGE HERE
 		# n_rpose = np.asarray([int(round((self.robot_pose[0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.robot_pose[1]-self.origem_map[1])*1.28 ))),self.robot_pose[2]])
 		# n_frontier = np.zeros((len(self.frontier),2))
@@ -576,7 +576,7 @@ class StageEnvironment(gym.Env):
 		
 		self.map = np.asarray([img])
 
-		self.observation_space = np.array([self.robot_pose,self.frontier,self.map])
+		self.observation_space = np.array([self.robot_pose,self.frontier,self.map],dtype=object)
 
 	def callback_map(self, data):
 		self.occ_map = data

@@ -85,7 +85,7 @@ class Policy(nn.Module):
 
 
 model = Policy()
-optimizer = optim.Adam(model.parameters(), lr=3e-4)
+optimizer = optim.Adam(model.parameters(), lr=1e-6)
 eps = np.finfo(np.float32).eps.item()
 
 
@@ -93,6 +93,7 @@ def select_action(state, eps):
     state = torch.from_numpy(state).float()
     model.eval()
     probs, state_value = model(state)
+    model.train()
 
 
     # action = np.argmax(probs.cpu().data.numpy())
@@ -101,23 +102,23 @@ def select_action(state, eps):
     
 
     # and sample an action using the distribution
-    if(random.random() > eps):
-        action = np.argmax(probs.cpu().data.numpy())
-        model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
-        print("\33[92m Categorical Sample \33[0m")
-    else:
-        action = random.choice(np.arange(5))
-        model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
+    # if(random.random() > eps):
+        # action = np.argmax(probs.cpu().data.numpy())
+        # model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
+        # print("\33[92m Categorical Sample \33[0m")
+    # else:
+        # action = random.choice(np.arange(5))
+        # model.saved_actions.append(SavedAction(torch.log(probs[action]), state_value))
         # print("\33[41m Aleatório \33[0m")
 
-    # m = Categorical(probs)
-    # action = m.sample()
+    m = Categorical(probs)
+    action = m.sample()
 
     # save to action buffer
-    # model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
+    model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
 
-    # return action.item()
-    return action
+    return action.item()
+    # return action
 
 
 def finish_episode():
@@ -271,8 +272,9 @@ for i_episode in count(1):
 
 
 print('Completed episodes')
-env.shutdown()
 plot_durations2(scores)
+env.shutdown()
+
 
 
 # if __name__ == '__main__':
