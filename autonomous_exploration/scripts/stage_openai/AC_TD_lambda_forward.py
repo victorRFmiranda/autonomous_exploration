@@ -109,18 +109,15 @@ class PolicyNetwork(nn.Module):
 		#input states
 		x = self.input_layer(x)
 		#relu activation
-		# x = F.relu(x)
+		x = F.relu(x)
 
 		# hidden layer
-		x2 = self.h_layer(x)
-		x3 = self.h_layer(x2)
-		x4 = self.h_layer(x3)
-		x5 = self.h_layer(x4)
-		x6 = F.relu(x5)
+		x2 = F.relu(self.h_layer(x))
+		x3 = F.relu(self.h_layer(x2))
 
 		
 		#actions
-		actions = self.output_layer(x5)
+		actions = self.output_layer(x3)
 		
 		#get softmax for a probability distribution
 		action_probs = F.softmax(actions, dim=1)
@@ -146,19 +143,15 @@ class StateValueNetwork(nn.Module):
 	def forward(self, x):
 		#input layer
 		x = self.input_layer(x)
-		
 		#activiation relu
-		# x = F.relu(x)
+		x = F.relu(x)
 
 		# hidden layer
-		x2 = self.h_layer(x)
-		x3 = self.h_layer(x2)
-		x4 = self.h_layer(x3)
-		x5 = self.h_layer(x4)
-		x6 = F.relu(x5)
+		x2 = F.relu(self.h_layer(x))
+		x3 = F.relu(self.h_layer(x2))
 		
 		#get state value
-		state_value = self.output_layer(x5)
+		state_value = self.output_layer(x3)
 		
 		return state_value
 
@@ -507,15 +500,16 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		print("Step: %d" % step)
 		#env.render()
 		
-
-		try:
-			#select action
-			action, lp = select_action(policy_network, state, concat_network)
-			# print("action :=", action)
-		except:
+		if (type(state[1]) is list):
 			print("State :=", state)
-			print("State Type :=", type(state))
-
+			state[1] = np.asarray(state[1])
+			print("State after :=", state)
+			print("State Type :=", type(state[1]))
+			input("\33[41m ERRO STATE IS LIST -- Press Enter to continue...\33[0m")
+		
+			#select action
+		action, lp = select_action(policy_network, state, concat_network)
+		print("action :=", action)
 	
 		
 		#execute action
