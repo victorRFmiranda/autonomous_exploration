@@ -501,11 +501,14 @@ while (episode <= MAX_EPISODES) and not rospy.is_shutdown():
 		#env.render()
 		
 		if (type(state[1]) is list):
-			print("State :=", state)
+			while(len(state[1])==0):
+				rospy.sleep(2)
+				print("Wainting Frontiers")
+			# print("State :=", state)
 			state[1] = np.asarray(state[1])
-			print("State after :=", state)
-			print("State Type :=", type(state[1]))
-			input("\33[41m ERRO STATE IS LIST -- Press Enter to continue...\33[0m")
+			# print("State after :=", state)
+			# print("State Type :=", type(state[1]))
+			# input("\33[41m ERRO STATE IS LIST -- Press Enter to continue...\33[0m")
 		
 			#select action
 		action, lp = select_action(policy_network, state, concat_network)
