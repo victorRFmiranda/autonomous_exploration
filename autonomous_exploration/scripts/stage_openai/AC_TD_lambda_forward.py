@@ -23,14 +23,6 @@ is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython:
 	from IPython import display
 
-def conv_block(input_size, output_size):
-	block = nn.Sequential(
-		nn.Conv2d(input_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-		nn.Conv2d(output_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-	)
-
-	return block
- 
 
 def conv2d_size_out(size, kernel_size = 5, stride = 2):
 			return (size - (kernel_size - 1) - 1) // stride  + 1
@@ -38,9 +30,6 @@ def conv2d_size_out(size, kernel_size = 5, stride = 2):
 class ConcatNetwork(nn.Module):
 	def __init__(self):
 		super(ConcatNetwork, self).__init__()
-		# test convolution
-		# self.conv1 = conv_block(1, 4)
-		# self.ln1 = nn.Linear(4 * 16 * 16, 32)
 
 		self.conv = nn.Sequential(
 				nn.Conv2d(1,16,kernel_size=5,stride=2),
@@ -63,14 +52,8 @@ class ConcatNetwork(nn.Module):
 
 		x[1] = x[1].view(x[1].size(0), -1)
 
-		# conv image
-		# x[2] = self.conv1(x[2])
-		# x[2] = x[2].view(x[2].size(0), -1)
-		# x[2] = self.ln1(x[2])
-		x[2] = self.conv(x[2])
-		# x[2] = x[2].view(x[2].size(0), -1)
-		# print("Net shape :=", x[2].shape)
 
+		x[2] = self.conv(x[2])
 		x[2] = self.dense(x[2].view(x[2].size(0), -1))
 
 
@@ -420,7 +403,7 @@ CRITIC_LAMBDA = args.CRITIC_LAMBDA
 
 
 #Make environment
-env = StageEnvironment(args, False)
+env = StageEnvironment(args, True)
 
 while(env.observation_space.shape[0] == 0):
 	rospy.sleep(1)
