@@ -27,7 +27,6 @@ import cv2
 
 # global variables
 mapData=OccupancyGrid()
-robot_states = [0.0, 0.0, 0.0]
 origem_map = [0.0,0.0]
 width = 0
 height = 0
@@ -39,21 +38,6 @@ resol = 0
 ########################################
 '''			Callbacks			 '''
 ########################################
-def callback_pose(data):
-	global robot_states
-
-	robot_states[0] = data.pose.pose.position.x  # robot pos x
-	robot_states[1] = data.pose.pose.position.y  # robot pos y
-
-	x_q = data.pose.pose.orientation.x
-	y_q = data.pose.pose.orientation.y
-	z_q = data.pose.pose.orientation.z
-	w_q = data.pose.pose.orientation.w
-	euler = euler_from_quaternion([x_q, y_q, z_q, w_q])
-
-	robot_states[2] = euler[2]  # robot orientation
-			
-	return
 
 def callback_map(msg):
 	global size, origem_map, width, height, resol, mapData
@@ -69,7 +53,7 @@ def callback_map(msg):
 ########################################
 '''			Compute Frontier		 '''
 ########################################
-def compute_frontiers(width,height,resol,origem_map,mapData, robot_states):
+def compute_frontiers(width,height,resol,origem_map,mapData):
 	front_vect = []
 	for i in range(width):
 		for j in range(height):
@@ -87,12 +71,6 @@ def compute_frontiers(width,height,resol,origem_map,mapData, robot_states):
 					if( (len(np.where(s==-1)[0]) >= 3) and (len(np.where(s1==100)[0])<=0)):
 						x = origem_map[0] + (i * resol + resol/2.0)
 						y = origem_map[1] + (j * resol + resol/2.0)
-						theta_s = atan2( (y - robot_states[1]), (x - robot_states[0]))
-						theta_s = np.mod(theta_s, 2*pi)
-						theta_r = np.mod(robot_states[2], 2*pi)
-						theta = theta_s - theta_r + pi*0
-						if theta > 2*pi:
-							theta -= 2*pi
 
 						front_vect.append([x,y])
 	return front_vect
@@ -147,9 +125,9 @@ def create_image(mapa, centers):
 def run():
 	## ROS STUFFS
 	rospy.init_node("lidar_frontier", anonymous=True)
+	# rospy.init_node("lidar_frontier")
 
 	# Subscribers
-	rospy.Subscriber('/odom', Odometry, callback_pose)
 	rospy.Subscriber('/map', OccupancyGrid, callback_map)
 
 	# Publishers
@@ -172,7 +150,7 @@ def run():
 	
 
 	while not rospy.is_shutdown():
-		frontiers = compute_frontiers(width,height,resol, origem_map, mapData, robot_states)
+		frontiers = compute_frontiers(width,height,resol, origem_map, mapData)
 		# print(len(frontiers))
 		ft_array = frontier()
 		Alive_msg = Int32()

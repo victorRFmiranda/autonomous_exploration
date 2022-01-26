@@ -24,11 +24,6 @@ from math import pi, atan2, tan, cos, sin, sqrt, hypot, floor, ceil, log
 import matplotlib.pyplot as plt
 
 from autonomous_exploration.msg import frontier
-# from a_star import Astar, control
-from rrtStar import RRTStar, control, compute_obstacles
-# from rrt import RRT
-# from new_aStar import A_Star, control
-from astar_start_end import searching_control
 from dijkstra import Dijkstra
 from vecfield_control.msg import Path
 
@@ -61,7 +56,6 @@ class StageEnvironment(gym.Env):
 		self.size = [0,0]
 		self.ocupation_map = []
 		self.occ_map = OccupancyGrid()
-		self.controlador = control()
 		self.laser = []
 		self.crash = 0
 		self.flag_control = 0
@@ -267,6 +261,8 @@ class StageEnvironment(gym.Env):
 
 		# new_state = np.asarray([n_rpose, n_frontier, self.map])
 
+		# new_state = np.asarray([self.robot_pose, self.frontier],dtype=object)
+
 		return new_state, self.robot_pose
 
 		
@@ -282,6 +278,8 @@ class StageEnvironment(gym.Env):
 		# 	n_frontier[k] = [int(round((self.frontier[k][0]-self.origem_map[0])*1.28)),int(round(( 64 - (self.frontier[k][1]-self.origem_map[1])*1.28 )))]
 
 		# new_state = np.asarray([n_rpose, n_frontier, self.map])
+
+		# new_state = np.asarray([self.robot_pose, self.frontier],dtype=object)
 
 		return new_state, self.robot_pose
 
@@ -498,6 +496,8 @@ class StageEnvironment(gym.Env):
 
 		# new_state = np.asarray([n_rpose, n_frontier, self.map])
 
+		# new_state = np.asarray([self.robot_pose, self.frontier],dtype=object)
+
 		return new_state, reward, done
 
 
@@ -514,8 +514,8 @@ class StageEnvironment(gym.Env):
 			# 	re = 0
 			# else:
 			# re = 0.5*D + map_reward
-			# re = distancy + map_reward
-			re = map_reward
+			re = distancy + map_reward
+			# re = map_reward
 
 			print("\33[92m Map Reward = %f \33[0m" % map_reward)
 			print("\33[94m Distance Reward = %f \33[0m" % distancy)
@@ -576,7 +576,8 @@ class StageEnvironment(gym.Env):
 		
 		self.map = np.asarray([img])
 
-		self.observation_space = np.array([self.robot_pose,self.frontier,self.map],dtype=object)
+		# self.observation_space = np.array([self.robot_pose,self.frontier,self.map],dtype=object)
+		self.observation_space = np.array([self.robot_pose,self.frontier],dtype=object)
 
 	def callback_map(self, data):
 		self.occ_map = data

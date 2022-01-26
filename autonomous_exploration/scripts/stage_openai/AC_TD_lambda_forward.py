@@ -22,14 +22,6 @@ import seaborn as sns
 is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython:
 	from IPython import display
-
-def conv_block(input_size, output_size):
-	block = nn.Sequential(
-		nn.Conv2d(input_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-		nn.Conv2d(output_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-	)
-
-	return block
  
 
 def conv2d_size_out(size, kernel_size = 5, stride = 2):
@@ -38,9 +30,6 @@ def conv2d_size_out(size, kernel_size = 5, stride = 2):
 class ConcatNetwork(nn.Module):
 	def __init__(self):
 		super(ConcatNetwork, self).__init__()
-		# test convolution
-		# self.conv1 = conv_block(1, 4)
-		# self.ln1 = nn.Linear(4 * 16 * 16, 32)
 
 		self.conv = nn.Sequential(
 				nn.Conv2d(1,16,kernel_size=5,stride=2),
@@ -56,7 +45,7 @@ class ConcatNetwork(nn.Module):
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))  # image 96x96
 		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))
 		linear_input_size = convw * convh * 32
-		self.dense = nn.Linear(linear_input_size,4)	# 4 actions
+		self.dense = nn.Linear(linear_input_size,10)
 
 
 	def forward(self, x):
@@ -64,17 +53,14 @@ class ConcatNetwork(nn.Module):
 		x[1] = x[1].view(x[1].size(0), -1)
 
 		# conv image
-		# x[2] = self.conv1(x[2])
-		# x[2] = x[2].view(x[2].size(0), -1)
-		# x[2] = self.ln1(x[2])
 		x[2] = self.conv(x[2])
-		# x[2] = x[2].view(x[2].size(0), -1)
-		# print("Net shape :=", x[2].shape)
-
 		x[2] = self.dense(x[2].view(x[2].size(0), -1))
 
 
 		x = torch.cat((x[0], x[1], x[2]), dim=1)
+
+		# CHANGE HERE
+		# x = torch.cat((x[0], x[1]), dim=1)
 
 		return x
 
@@ -375,9 +361,9 @@ def plot_():
 	# 	means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
 	# 	means = torch.cat((torch.zeros(99), means))
 	# 	plt.plot(means.numpy())
-	if len(durations_t) >= 5:
-		means = scores_t.unfold(0, 5, 1).mean(1).view(-1)
-		means = torch.cat((torch.zeros(4), means))
+	if len(durations_t) >= 30:
+		means = scores_t.unfold(0, 30, 1).mean(1).view(-1)
+		means = torch.cat((torch.zeros(29), means))
 		plt.plot(means.numpy())
 
 	plt.pause(0.001)  # pause a bit so that plots are updated
@@ -407,9 +393,9 @@ MAX_STEPS = args.MAX_STEPS
 # number of states (ANN inputs)
 NUM_STATES = args.num_states
 #device to run model on 
-# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DEVICE = "cpu"
-
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# DEVICE = "cpu"
+# 
 if torch.cuda.is_available():
 	gc.collect()
 	torch.cuda.empty_cache()

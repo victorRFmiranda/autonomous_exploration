@@ -9,42 +9,9 @@ from torch.distributions import Categorical
 
 import numpy as np
 
-# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DEVICE = "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# DEVICE = "cpu"
 DISCOUNT_FACTOR = 0.9
-
- 
-def conv_block(input_size, output_size):
-	block = nn.Sequential(
-		nn.Conv2d(input_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-		nn.Conv2d(output_size, output_size, kernel_size=3,stride=1,padding=1), nn.BatchNorm2d(output_size), nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=2, stride=2),
-	)
-
-	return block
- 
-
-
-class ConcatNetwork(nn.Module):
-	def __init__(self):
-		super(ConcatNetwork, self).__init__()
-		# test convolution
-		self.conv1 = conv_block(1, 4)
-		self.ln1 = nn.Linear(4 * 16 * 16, 32)
-
-
-	def forward(self, x):
-
-		x[1] = x[1].view(x[1].size(0), -1)
-
-		# conv image
-		x[2] = self.conv1(x[2])
-		x[2] = x[2].view(x[2].size(0), -1)
-		x[2] = self.ln1(x[2])
-
-
-		x = torch.cat((x[0], x[1], x[2]), dim=1)
-
-		return x
 
 
 
@@ -60,11 +27,11 @@ class PolicyNetwork(nn.Module):
 		# Resumo, entra observation_space entradas e saem action_space saidas, com 512 neuronios na camada escondida.
 		# Camada de entrada da rede de acordo com o observation_space
 		# 512 neuronios na camada escondida
-		self.input_layer = nn.Linear(observation_space, 128)
+		self.input_layer = nn.Linear(observation_space, 512)
 		# hidden Layer
-		self.h_layer = nn.Linear(128,128)
+		self.h_layer = nn.Linear(512,512)
 		# Liga a camada escondida com a saida de tamanho definido pelo action_space
-		self.output_layer = nn.Linear(128, action_space)
+		self.output_layer = nn.Linear(512, action_space)
 
 		
 	
@@ -74,15 +41,14 @@ class PolicyNetwork(nn.Module):
 		#input states
 		x = self.input_layer(x)
 		#relu activation
-		# x = F.relu(x)
+		x = F.relu(x)
 
 		# hidden layer
-		x2 = self.h_layer(x)
-		x3 = F.relu(x2)
+		x2 = F.relu(self.h_layer(x))
 
 		
 		#actions
-		actions = self.output_layer(x3)
+		actions = self.output_layer(x2)
 		
 		#get softmax for a probability distribution
 		action_probs = F.softmax(actions, dim=1)
@@ -99,25 +65,24 @@ class StateValueNetwork(nn.Module):
 		# observation_space -> quantidade de estados
 		# 512 neuronios na camada escondida
 		
-		self.input_layer = nn.Linear(observation_space, 128)
+		self.input_layer = nn.Linear(observation_space, 512)
 		# hidden Layer
-		self.h_layer = nn.Linear(128,128)
+		self.h_layer = nn.Linear(512,512)
 		#
-		self.output_layer = nn.Linear(128, 1)
+		self.output_layer = nn.Linear(512, 1)
 		
 	def forward(self, x):
 		#input layer
 		x = self.input_layer(x)
 		
 		#activiation relu
-		# x = F.relu(x)
+		x = F.relu(x)
 
 		# hidden layer
-		x2 = self.h_layer(x)
-		x3 = F.relu(x2)
+		x2 = F.relu(self.h_layer(x))
 		
 		#get state value
-		state_value = self.output_layer(x3)
+		state_value = self.output_layer(x2)
 		
 		return state_value
 

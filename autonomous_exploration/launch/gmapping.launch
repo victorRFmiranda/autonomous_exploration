@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-
+ 
+    <!-- Args -->
     <arg name="xmin" default="-25.0"/>
     <arg name="ymin" default="-25.0"/>
     <arg name="xmax" default="25.0"/>
@@ -10,10 +11,11 @@
 
 
     <!-- Transforms -->
-    <!-- <node pkg="tf"
+    <node pkg="tf"
         type="static_transform_publisher"
         name="link1_broadcaster"
-        args="-20.0 -20.0 0 0 0 0 world odom 100" /> -->
+        args="-20.0 -20.0 0 0 0 0 world odom 100" />
+
 
     <!-- GMAPPING -->
     <node pkg="gmapping" type="slam_gmapping" name="GMAP" args="-d scan:=base_scan">
