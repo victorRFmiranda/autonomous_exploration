@@ -22,7 +22,7 @@ import seaborn as sns
 is_ipython = 'inline' in matplotlib.get_backend()
 if is_ipython:
 	from IPython import display
- 
+
 
 def conv2d_size_out(size, kernel_size = 5, stride = 2):
 			return (size - (kernel_size - 1) - 1) // stride  + 1
@@ -406,7 +406,7 @@ CRITIC_LAMBDA = args.CRITIC_LAMBDA
 
 
 #Make environment
-env = StageEnvironment(args, False)
+env = StageEnvironment(args, True)
 
 while(env.observation_space.shape[0] == 0):
 	rospy.sleep(1)

@@ -102,8 +102,8 @@ class StageEnvironment(gym.Env):
 
 
 		## FOR RANDOM START POINT
-		if(self.flag_rnd):
-			self.fullMap = self.get_fullMap()
+		# if(self.flag_rnd):
+			# self.fullMap = self.get_fullMap()
 		# rnd_point = self.get_random(self.fullMap)
 
 
@@ -145,35 +145,28 @@ class StageEnvironment(gym.Env):
 		return mapa
 
 	def get_random(self, mapa):
-		# while True:
-		# 	flag_roll = False
-		# 	n_point = np.asarray([random.uniform(-25.0, 25.0), random.uniform(-25.0, 25.0)])
-		# 	print("Ponto = ", n_point)
-		# 	for i in range(len(mapa)):
-		# 		D = _dist(n_point,mapa[i])
-		# 		print("Distance = %f" % D)
-		# 		if(D < 20.0):
-		# 			flag_roll = True
-		# 			break
-
-		# 	if not flag_roll:
-		# 		break
 
 		idx = np.random.randint(len(mapa))
 		n_point = mapa[idx]
-		# n_point = mapa[np.random.choice(mapa.shape[0], 1, replace=False), :][0]
 		print(n_point)
 
 		return n_point
 
 
 
-	# def max_freeSpaces(self):
-	# 	file = rospy.get_param("/map_dir")
-	# 	img = cv2.imread(file)
-	# 	freeSpace = np.sum(img == 255)
-	# 	colision = np.sum(img == 0)
-	# 	return freeSpace
+	def aleatory_pose(self):
+		vec_x = [[-20,-17],[-20,-17],[-20,-17],[-9,-5],[-9,-5],[-9,-5],[3,7],[3,7],[3,7],[15,20],[15,20],[15,20]]
+		vec_y = [[-21,-16],[-9,-3],[3,20],[11,20],[3,5],[-16,-11],[-21,-3],[3,5],[12,20],[12,21],[3,5],[-20,-3]]
+		aux = np.random.randint(12)
+
+		x = np.random.uniform(vec_x[aux][0],vec_x[aux][1])
+		y = np.random.uniform(vec_y[aux][0],vec_y[aux][1])
+
+		# q = quaternion_from_euler(0, 0, np.random.uniform(-pi,pi))
+		theta = np.random.uniform(-pi,pi)
+
+		return np.asarray([x, y, theta])
+
 
 
 	# change the map for training
@@ -206,8 +199,9 @@ class StageEnvironment(gym.Env):
 		# Reset Pose
 		msg_pos = Pose()
 		if self.flag_rnd:
-			rnd_point = self.get_random(self.fullMap)
-			data = np.asarray([rnd_point[0],rnd_point[1],0.0])
+			# rnd_point = self.get_random(self.fullMap)
+			# data = np.asarray([rnd_point[0],rnd_point[1],0.0])
+			data = self.aleatory_pose()
 		
 		q = quaternion_from_euler(0,0,data[2])
 		msg_pos.orientation.x = q[0]
