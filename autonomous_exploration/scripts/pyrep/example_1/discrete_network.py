@@ -45,10 +45,11 @@ class PolicyNetwork(nn.Module):
 
 		# hidden layer
 		x2 = F.relu(self.h_layer(x))
+		x3 = F.relu(self.h_layer(x2))
 
 		
 		#actions
-		actions = self.output_layer(x2)
+		actions = self.output_layer(x3)
 		
 		#get softmax for a probability distribution
 		action_probs = F.softmax(actions, dim=1)
@@ -80,9 +81,10 @@ class StateValueNetwork(nn.Module):
 
 		# hidden layer
 		x2 = F.relu(self.h_layer(x))
+		x3 = F.relu(self.h_layer(x2))
 		
 		#get state value
-		state_value = self.output_layer(x2)
+		state_value = self.output_layer(x3)
 		
 		return state_value
 

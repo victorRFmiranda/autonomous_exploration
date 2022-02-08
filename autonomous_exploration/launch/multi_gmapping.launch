@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+ 
+    <!-- Args -->
+    <arg name="xmin" default="-25.0"/>
+    <arg name="ymin" default="-25.0"/>
+    <arg name="xmax" default="25.0"/>
+    <arg name="ymax" default="25.0"/>
+    <arg name="delta" default="0.5"/>
+    <arg name="odom_frame" default="world"/>
+
+    <arg name="robot" default="0"/>
+
+
+    <node pkg="tf"
+        type="static_transform_publisher"
+        name="link1_broadcaster"
+        args="-20.0 -20.0 0 0 0 0 world odom 100" />
+
+    <!-- group -->
+    
+        <!-- GMAPPING -->
+        <node pkg="gmapping" type="slam_gmapping" name="GMAP" args="-d scan:=base_scan" ns="r_$(arg robot)">
+            <param name="xmin" value="$(arg xmin)"/>
+            <param name="ymin" value="$(arg ymin)"/>
+            <param name="xmax" value="$(arg xmax)"/>
+            <param name="ymax" value="$(arg ymax)"/>
+            <param name="delta" value="$(arg delta)" />
+            <param name="odom_frame" value="$(arg odom_frame)" />
+            <param name="map_update_interval" value="0.1"/>
+        </node>
+
+        <!-- Frontier Detect -->
+    <!-- <group ns="r_$(arg robot)"> -->
+        <!-- <node pkg="autonomous_exploration" type="frontier_lidar.py" name="Detect_frontier" output="screen" ns="r_$(arg robot)"/> -->
+    <!-- </group> -->
+
+
+        <!--- Vector Field -->
+    <!-- <group ns="r_$(arg robot)">  -->
+        <!-- <include file="$(find vecfield_control)/launch/vector_field_basic.launch" /> -->
+    <!-- </group> -->
+
+    
+
+</launch>
+
+
+<!-- roslaunch autonomous_exploration gmapping.launch xmin:=-25.0 ymin:=-25.0 xmax:=25.0 ymax:=25.0 delta:=0.1 odom_fram:=world -->

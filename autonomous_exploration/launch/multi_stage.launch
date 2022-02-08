@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+    <!-- Args -->
+    <arg name="robot" default="0"/>
+    <arg name="map" default="map2"/>
+
+    <!-- Params -->
+    <param name="use_sim_time" value="false"/>
+    <param name="map_dir" value="$(find autonomous_exploration)/sim_worlds/$(arg map).png"/>
+
+    <!-- ROS STAGE -->    
+    <group ns="r_$(arg robot)">
+        <node pkg="stage_ros" type="stageros" name="stageros" args="-d $(find autonomous_exploration)/sim_worlds/$(arg map).world" output="screen"/>  
+    </group>
+
+
+    
+
+</launch>
+ 
