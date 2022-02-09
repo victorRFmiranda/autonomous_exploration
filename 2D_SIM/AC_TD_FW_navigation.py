@@ -10,6 +10,7 @@ from collections import deque
 # import matplotlib
 # from sklearn.linear_model import LinearRegression
 from queue import Queue
+import cv2
 
 
 from environment.environment import Environment
@@ -22,7 +23,7 @@ import action_mapper
 # if is_ipython:
 # 	from IPython import display
 
-
+ 
 def conv2d_size_out(size, kernel_size = 1, stride = 2):
 			return (size - (kernel_size - 1) - 1) // stride  + 1
 
@@ -49,9 +50,9 @@ class PolicyNetwork(nn.Module):
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
 		linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,256),
+					nn.Linear(linear_input_size,512),
 					nn.ReLU(),
-					nn.Linear(256,action_space)
+					nn.Linear(512,action_space)
 					)
 
 		
@@ -90,9 +91,9 @@ class StateValueNetwork(nn.Module):
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
 		linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,256),
+					nn.Linear(linear_input_size,512),
 					nn.ReLU(),
-					nn.Linear(256,1)
+					nn.Linear(512,1)
 					)
 		
 	def forward(self, x):
@@ -115,6 +116,7 @@ def select_action(network, state):
 	'''
 
 	# state = np.asarray(state)
+	
 
 	
 	#convert state to float tensor, add 1 dimension, allocate tensor on device
@@ -125,7 +127,6 @@ def select_action(network, state):
 	# state = ccnetwork(state_v)
 
 	state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
-
 	
 	#use network to predict action probabilities
 	network.eval()
@@ -317,16 +318,17 @@ def update_frame(q, frame):
 
 
 
-
-
 ###################################################################
 if __name__ == "__main__":
-	env = Environment("./Simulation2d/world/roblab")
-	# env.set_mode(Mode.ALL_RANDOM, False)
+	env = Environment("./environment/world/ufmg_2")
+	env.set_mode(Mode.ALL_RANDOM, False)
 	env.use_ditance_angle_to_end(True)
 	env.set_observation_rotation_size(128)
 	env.use_observation_rotation_size(True)
-	# env.set_cluster_size(1)
+	env.set_cluster_size(1)
+
+	observation, _, flag_colide, _ = env.reset()
+
 
 	state_size = env.observation_size()
 	action_size = action_mapper.ACTION_SIZE
@@ -336,14 +338,14 @@ if __name__ == "__main__":
 	actor = PolicyNetwork(state_size, action_size).to(DEVICE)
 	critic = StateValueNetwork(state_size).to(DEVICE)
 
-	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-4)
-	critic_optimizer = optim.Adam(critic.parameters(), lr=3e-4)
+	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-6)
+	critic_optimizer = optim.Adam(critic.parameters(), lr=3e-6)
 
 	recent_scores = deque(maxlen=10000)
 
-	MAX_EPISODES = 40000
-	MAX_STEPS = 200
-	vector_len = 4
+	MAX_EPISODES = 100000
+	MAX_STEPS = 500
+	vector_len = 5
 	CRITIC_LAMBDA = 0.9
 	DISCOUNT_FACTOR = 0.9
 
@@ -372,13 +374,10 @@ if __name__ == "__main__":
 		trajectory = []
 		score = 0
 
-		# print("Episode: %d" % ep)
+		print("Episode: %d" % ep)
 		
 		for step in range(MAX_STEPS):
-
-			# print("Step: %d" % step)
-
-			# state = np.random.rand(1211,5)
+			
 			action, lp = select_action(actor, state)
 			# print("Action :=", action)
 			linear, angular = action_mapper.map_action(action)
@@ -399,9 +398,17 @@ if __name__ == "__main__":
 
 			env.visualize()
 
+			
+
 			if done and step > 1:
 				print("Episode %d - Score = %f" % (ep,score))
 				break
+
+
+		# print(mapa)
+		# cv2.imshow('Mapa',mapa)
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
 
 		scores.append(score)
 		recent_scores.append(score)
@@ -439,6 +446,8 @@ if __name__ == "__main__":
 		train_policy(deltas, lps, actor_optimizer)
 
 		ep += 1
+
+
 
 
 print("Finish")

@@ -9,10 +9,51 @@ from .environment_node import Node
 # from .lidar_to_grid_map import Map, generate_ray_casting_grid_map
 from .localmap import Map
 from .getfrontier import getfrontier
-
+from .dijkstra import Dijkstra
+from .astar_start_end import searching_control
 from sklearn.cluster import DBSCAN, KMeans
 
 
+########################################
+'''           Control Class          '''
+########################################
+class Control:
+    def __init__(self):
+        self.d = 0.1
+        self.k = 100.0
+        self.vr = 0.5
+
+    def dist(self, p1,p2): 
+        return ((p1[0]-p2[0])**2 +(p1[1]-p2[1])**2)**(0.5)
+
+    def control_(self,pos_curve, robot_states):
+
+        D = self.dist( robot_states, pos_curve )
+
+        D_vec = [robot_states[0]-pos_curve[0],robot_states[1]-pos_curve[1]]
+        grad_D = [D_vec[0]/(D + 0.000001), D_vec[1]/(D + 0.000001)]
+
+
+
+        P = 0.5*(D**2)
+        # G = -(2/pi)*atan(self.k*sqrt(P))
+        G = -(2/math.pi)*math.atan(self.k*P)
+        H = math.sqrt(1-G**2)
+
+        Ux = self.vr * (G*grad_D[0] + H*grad_D[0])
+        Uy = self.vr * (G*grad_D[1] + H*grad_D[1])
+
+        return self.feedback_linearization(Ux,Uy,robot_states[2])
+
+
+    def feedback_linearization(self,Ux, Uy, theta_n):
+
+        vx = math.cos(theta_n) * Ux + math.sin(theta_n) * Uy
+        w = -(math.sin(theta_n) * Ux)/ self.d  + (math.cos(theta_n) * Uy) / self.d 
+
+        return vx, w
+
+ 
 class Environment:
     """
     Class as a wrapper for the Simulation2D.
@@ -34,7 +75,8 @@ class Environment:
         # self.m_morigin=[self.m_width/2.0,self.m_height/2.0]
 
         # self.m_height, self.m_width, self.m_resolution=12,12,0.1
-        self.m_height, self.m_width, self.m_resolution=100,100,0.1
+        self.m_height, self.m_width, self.m_resolution=100,100,1.0
+        self.control = Control()
         
 
         
@@ -95,7 +137,7 @@ class Environment:
     '''         Compute Frontier         '''
     ########################################
     def _get_frontier(self):
-        mapData = self._get_map()
+        mapData, _ = self._get_map()
         
         width, height = mapData.shape
         front_vect = []
@@ -115,9 +157,9 @@ class Environment:
                                     mapData[i+1,j-2], mapData[i+1,j-1], mapData[i+1,j], mapData[i+1,j+1], mapData[i+1,j+2],
                                     mapData[i+2,j-2], mapData[i+2,j-1], mapData[i+2,j], mapData[i+2,j+1], mapData[i+2,j+2] ])
 
-                        if( (len(np.where(s==205)[0]) >= 2) and (len(np.where(s1==0)[0])<=0) ):
+                        if( (len(np.where(s==205)[0]) >= 3) and (len(np.where(s1==0)[0])<=0) ):
                             x = i
-                            y = j
+                            y = j 
 
                             front_vect.append([x,y])
 
@@ -162,12 +204,14 @@ class Environment:
     ########################################
     def _get_map(self):
 
+        map_increase = 0.0
+
         lidar = self._get_observation_notNormalized()
         pose = [self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()]
 
-        pmap = self.Map.update_map(lidar,pose)
+        pmap,map_increase  = self.Map.update_map(lidar,pose)
 
-        return pmap
+        return pmap, map_increase
 
 
     def _get_observation_notNormalized(self):
@@ -243,6 +287,194 @@ class Environment:
         """
         end_node = self._fitness_data.get_end_node()
         self._env.visualize(end_node.x(), end_node.y(), end_node.radius())
+
+
+    ########################################################
+    ####         Inicio do STEP com Fronteiras          ####
+    ########################################################
+    def follow_path(self, frontier, map_before, robot_pose):
+        start = [int(round((robot_pose[0])/self.m_resolution)),int(round((robot_pose[1])/self.m_resolution))]
+        goal = [int(round((frontier[0])/self.m_resolution)),int(round((frontier[1])/self.m_resolution))]
+
+        obst_idx = np.where(map_before == 0.0)
+        obstacles = [obst_idx[0].tolist(),obst_idx[1].tolist()]
+        ox = obstacles[1]
+        oy = obstacles[0]
+
+
+        #### ASTAR Start-END
+        obst_list = []
+        for i in range(len(obstacles[0])):
+            obst_list.append([obstacles[0][i],obstacles[1][i]])
+        obstacle = np.asarray(obst_list)
+        path = searching_control(start, goal, obstacle, obstacle)
+
+
+        # print("Robot pose := ", robot_pose[0:2])
+        # print("start := ", start)
+        # print("goal := ", goal)
+        # print("Path := ", path)
+
+        # input("Wait")
+
+        ####### Dijskstra
+        # grid_size = 0.5
+        # robot_radius = 1.0
+        # # dijkstra = Dijkstra(np.asarray([[0.0,100.0],[0.0,100.0]]),ox, oy, grid_size, robot_radius)
+        # dijkstra = Dijkstra(ox, oy, grid_size, robot_radius)
+
+        # print("Planning")
+        # print("Start :=", start)
+        # # goal = [start[0], start[1] + 5]
+        # print("GOAL :=", goal)
+        # path = []
+        # rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+        # print("rx := ", rx)
+        # print("ry := ", ry)
+        # input("WAIT")
+        # # path.append(start)
+        # for j in range(len(rx)):
+        #     path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
+
+
+        vec_path = np.zeros((len(path),2))
+        for i in range(len(path)):
+            vec_path[i,:] = list(path[i])
+            vec_path[i,0] = (vec_path[i,0]*self.m_resolution + self.m_resolution/2.0)
+            vec_path[i,1] = (vec_path[i,1]*self.m_resolution + self.m_resolution/2.0)
+
+
+        D = 1000
+        env_done = self._env.done()
+        while(D > 0.2 and not env_done): 
+
+            robot_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
+            D = self._distance(vec_path[i,0],vec_path[i,1],robot_pose[0],robot_pose[1])
+            print("D := ", D)
+
+            linear, angular = self.control.control_([vec_path[i,0],vec_path[i,1]],robot_pose)
+
+            self._env.step(linear, angular, 20)
+
+            self.visualize()
+
+            env_done = self._env.done()
+
+
+
+        
+
+
+
+
+
+    def detect_action(self,action):
+        frontier = self._get_frontier()
+
+        if(action ==0):
+            outp = frontier[0]
+        elif(action ==1):
+            outp = frontier[1]
+        elif(action==2):
+            outp = frontier[2]
+        else:
+            outp = frontier[3]
+
+        return outp
+
+    def step_2(self, action):
+        #### Select desired frontier based in discrete RNA prediction
+        f_def = self.detect_action(action)
+
+        env_robot_x = self._env.get_robot_pose_x()
+        env_robot_y = self._env.get_robot_pose_y()
+        env_robot_orientation = self._env.get_robot_pose_orientation()
+
+        D = self._distance(env_robot_x, env_robot_y,f_def[0],f_def[1])
+
+        # compute map before
+        mapa_before, gmap_before = self._get_map()
+
+        # Compute path to the desired frontier and follow
+        if(action != -1):
+            self.follow_path(f_def, mapa_before, np.asarray([env_robot_x,env_robot_y,env_robot_orientation]))
+
+        # get new map
+        mapa, gmap_after = self._get_map()
+        map_gain = gmap_after - gmap_before
+
+        # get new frontiers
+        new_frontiers = self._get_frontier()
+
+        # compute reward
+        done, reward = self.compute_reward(D, map_gain)
+
+        # compute new robot pose
+        r_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
+
+        # Compute new observation
+        observation = []
+        observation.append(r_pose)
+        observation.append(new_frontiers)
+        observation.append(mapa)
+        observation = np.asarray(observation,dtype=object)
+
+        # print(observation)
+        # print(observation.shape)
+
+
+        return observation, reward, done, ""
+
+
+    def compute_reward(self,D, map_gain):
+        done = False
+        reward = 0.0
+
+        env_done = self._env.done()
+        map_reward = 0.07*float(map_gain) #/float(self.freeMap_size)
+        distancy = math.log(D)
+
+        re = distancy + map_reward
+
+        if env_done:
+            reward = -20
+            done = True
+
+
+        return done, reward
+
+
+
+
+    @staticmethod
+    def _distance(x1: float, y1: float, x2: float, y2: float) -> float:
+        """
+        Calculate the euler distance from to point.
+        :param x1: First point x.
+        :param y1: First point y.
+        :param x2: Second point x.
+        :param y2: Second point y.
+        :return: Euler distnace from to points.
+        """
+        x = x1 - x2
+        y = y1 - y2
+        return math.sqrt(x*x + y*y)
+
+
+
+    def reset_2(self):
+        self.reset()
+        self.Map = Map((self.m_height, self.m_width), self.m_resolution)
+
+        return self.step_2(-1)
+
+
+
+
+    ########################################################
+    ####            FIM do STEP com Fronteiras          ####
+    ########################################################
+
 
     def step(self, linear_velocity: float, angular_velocity: float, skip_number: int = 1):
         """
@@ -328,7 +560,7 @@ class Environment:
         :return:
         """
         # self.m=localmap(self.m_height, self.m_width, self.m_resolution,self.m_morigin)
-        self.Map = Map((self.m_height, self.m_width), self.m_resolution)
+        # self.Map = Map((self.m_height, self.m_width), self.m_resolution)
 
         self._fitness_data.reset()
         x, y, orientation = self._fitness_data.get_robot_start()

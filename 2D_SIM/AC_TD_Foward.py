@@ -24,33 +24,72 @@ import action_mapper
 # 	from IPython import display
 
  
-def conv2d_size_out(size, kernel_size = 1, stride = 2):
+def conv2d_size_out(size, kernel_size = 5, stride = 2):
 			return (size - (kernel_size - 1) - 1) // stride  + 1
 
 #Using a neural network to learn our policy parameters
 class PolicyNetwork(nn.Module):
 	
 	#Takes in observations and outputs actions
-	def __init__(self, observation_space, action_space):
+	def __init__(self, observation_space, action_space, map_size):
 		# observation_space -> quantidade de estados
 		# action_space -> quantidade de acoes
 		
 		super(PolicyNetwork, self).__init__()
-		self.conv = nn.Sequential(
-				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=1,stride=2),
-				nn.BatchNorm1d(16),
+
+		self.conv_pos = nn.Sequential(
+						nn.Conv1d(in_channels=3,out_channels=2,kernel_size=1,stride=2),
+						nn.BatchNorm1d(2),
+						nn.ReLU()
+						)
+		pos_input = 6
+
+		self.conv_frontier = nn.Sequential(
+						nn.Conv2d(4,8,kernel_size=2,stride=2),
+						nn.BatchNorm2d(8),
+						nn.ReLU()
+						)
+		cw = conv2d_size_out(4,kernel_size=2)
+		ch = conv2d_size_out(2,kernel_size=2)
+		frontier_input = cw*ch*8
+
+
+		self.conv2d = nn.Sequential(
+				nn.Conv2d(map_size[0],16,kernel_size=1,stride=2),
+				nn.BatchNorm2d(16),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
+				nn.Conv2d(16,32,kernel_size=3,stride=2),
+				nn.BatchNorm2d(32),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
+				nn.Conv2d(32,32,kernel_size=1,stride=2),
+				nn.BatchNorm2d(32),
 				nn.ReLU(),
 				)
-		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
-		linear_input_size = 32
+		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[0],kernel_size=1),kernel_size=3),kernel_size=1)  
+		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[1],kernel_size=1),kernel_size=3),kernel_size=1)
+		map_input = 384 #???
+
+
+		cv1_inputsize = map_input + frontier_input + pos_input
+							# MAPA + Frontiers + robot_pose
+
+
+		# self.conv = nn.Sequential(
+		# 		nn.Conv1d(in_channels=cv1_inputsize,out_channels=16,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(16),
+		# 		nn.ReLU(),
+		# 		nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(32),
+		# 		nn.ReLU(),
+		# 		nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(32),
+		# 		nn.ReLU(),
+		# 		)
+		# linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(cv1_inputsize,512),
+					nn.ReLU(),
+					nn.Linear(512,512),
 					nn.ReLU(),
 					nn.Linear(512,action_space)
 					)
@@ -58,10 +97,25 @@ class PolicyNetwork(nn.Module):
 		
 	
 	#forward pass
-	def forward(self, x):
+	def forward(self, observ):
+	
+		x = list([])
 
-		x = self.conv(x)
-		actions = self.dense(x.view(x.size(0), -1))
+		x0 = self.conv_pos(observ[0])
+		x0 = x0.view(x0.size(0), -1)
+		
+		x1 = self.conv_frontier(observ[1])
+		x1 = x1.view(x1.size(0), -1)		
+
+		x2 = self.conv2d(observ[2])
+		x2 = x2.view(x2.size(0), -1)
+		
+
+		x = torch.cat((x0, x1, x2), dim=1)
+		
+
+		# x = self.conv(x)
+		actions = self.dense(x)
 		
 		#get softmax for a probability distribution
 		action_probs = F.softmax(actions, dim=1)
@@ -77,29 +131,82 @@ class StateValueNetwork(nn.Module):
 		super(StateValueNetwork, self).__init__()
 		# # observation_space -> quantidade de estados
 
-		self.conv = nn.Sequential(
-				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=1,stride=2),
-				nn.BatchNorm1d(16),
+		self.conv_pos = nn.Sequential(
+						nn.Conv1d(in_channels=3,out_channels=2,kernel_size=1,stride=2),
+						nn.BatchNorm1d(2),
+						nn.ReLU()
+						)
+		pos_input = 6
+
+		self.conv_frontier = nn.Sequential(
+						nn.Conv2d(4,8,kernel_size=2,stride=2),
+						nn.BatchNorm2d(8),
+						nn.ReLU()
+						)
+		cw = conv2d_size_out(4,kernel_size=2)
+		ch = conv2d_size_out(2,kernel_size=2)
+		frontier_input = cw*ch*8
+
+
+		self.conv2d = nn.Sequential(
+				nn.Conv2d(map_size[0],16,kernel_size=1,stride=2),
+				nn.BatchNorm2d(16),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
+				nn.Conv2d(16,32,kernel_size=3,stride=2),
+				nn.BatchNorm2d(32),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
+				nn.Conv2d(32,32,kernel_size=1,stride=2),
+				nn.BatchNorm2d(32),
 				nn.ReLU(),
 				)
-		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
-		linear_input_size = 32
+		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[0],kernel_size=1),kernel_size=3),kernel_size=1)  
+		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[1],kernel_size=1),kernel_size=3),kernel_size=1)
+		map_input = 384 #???
+
+
+		cv1_inputsize = map_input + frontier_input + pos_input
+							# MAPA + Frontiers + robot_pose
+
+
+		# self.conv = nn.Sequential(
+		# 		nn.Conv1d(in_channels=cv1_inputsize,out_channels=16,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(16),
+		# 		nn.ReLU(),
+		# 		nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(32),
+		# 		nn.ReLU(),
+		# 		nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
+		# 		nn.BatchNorm1d(32),
+		# 		nn.ReLU(),
+		# 		)
+		# linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(cv1_inputsize,512),
+					nn.ReLU(),
+					nn.Linear(512,512),
 					nn.ReLU(),
 					nn.Linear(512,1)
 					)
 		
-	def forward(self, x):
+	def forward(self, observ):
 
-		x = self.conv(x)
-		state_value = self.dense(x.view(x.size(0), -1))
+		x = list([])
+
+		x0 = self.conv_pos(observ[0])
+		x0 = x0.view(x0.size(0), -1)
+		
+		x1 = self.conv_frontier(observ[1])
+		x1 = x1.view(x1.size(0), -1)		
+
+		x2 = self.conv2d(observ[2])
+		x2 = x2.view(x2.size(0), -1)
+		
+
+		x = torch.cat((x0, x1, x2), dim=1)
+		
+
+		# x = self.conv(x)
+		state_value = self.dense(x)
 		
 		return state_value
 
@@ -115,24 +222,30 @@ def select_action(network, state):
 	- (float): log probability of selecting that action given state and network
 	'''
 
-	# state = np.asarray(state)
+	
+	# s0 = np.stack(state[0], axis=1)
+	# s1 = np.stack(state[1],axis=0)
+	# s1 = np.transpose(s1, [1, -1, 0])
+	# s2 = np.stack(state[2],axis=0)
+	# s2 = np.transpose(s2, [1, -1, 0])
+	# state = np.asarray([s0,s1,s2],dtype=object)
 
 	
-	#convert state to float tensor, add 1 dimension, allocate tensor on device
-	# state_v = []
+	#convert state to float tensor, add 1 dimension, allocate tensor on device	
+	state_v = []
 	# for k in state:
-		# state_v.append(torch.from_numpy(k).float().unsqueeze(0).to(DEVICE))
+	# 	state_v.append(torch.from_numpy(k).float().unsqueeze(0).to(DEVICE))
 
-	# state = ccnetwork(state_v)
 
-	state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
+	state_v = concat_states(state)
+
 
 	
 	#use network to predict action probabilities
 	network.eval()
-	action_probs = network(state)
-	# network.train()
-	state = state.detach()
+	action_probs = network(state_v)
+	network.train()
+	# state = state.detach()
 	
 	#sample an action using the probability distribution
 	m = Categorical(action_probs)
@@ -316,26 +429,44 @@ def update_frame(q, frame):
 	q.put(frame)
 
 
+def concat_states(state):
+	s0 = np.stack(state[0], axis=1)
+	s1 = np.stack(state[1],axis=0)
+	s1 = np.transpose(s1, [1, -1, 0])
+	s2 = np.stack(state[2],axis=0)
+	s2 = np.transpose(s2, [1, -1, 0])
+	state = np.asarray([s0,s1,s2],dtype=object)
+
+	state_v = []
+	for k in state:
+		state_v.append(torch.from_numpy(k).float().unsqueeze(0).to(DEVICE))
+
+	return state_v
+
+
 
 
 ###################################################################
 if __name__ == "__main__":
 	env = Environment("./environment/world/ufmg_2")
-	# env.set_mode(Mode.ALL_RANDOM, False)
+	env.set_mode(Mode.ALL_RANDOM, False)
 	env.use_ditance_angle_to_end(True)
 	env.set_observation_rotation_size(128)
 	env.use_observation_rotation_size(True)
 	env.set_cluster_size(1)
 
-	observation, _, flag_colide, _ = env.reset()
+	observation, _, flag_colide, _ = env.reset_2()
+
+	s_map,_ = env._get_map()
+	map_size = s_map.shape
 
 
 	state_size = env.observation_size()
-	action_size = action_mapper.ACTION_SIZE
+	action_size = 4
 
 	DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-	actor = PolicyNetwork(state_size, action_size).to(DEVICE)
+	actor = PolicyNetwork(state_size, action_size, map_size).to(DEVICE)
 	critic = StateValueNetwork(state_size).to(DEVICE)
 
 	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-6)
@@ -357,11 +488,12 @@ if __name__ == "__main__":
 	while (ep < MAX_EPISODES):
 
 		queue_state.queue.clear()
-		observation, _, flag_colide, _ = env.reset()
+		observation, _, flag_colide, _ = env.reset_2()
+
 
 		while(not queue_state.full()):
 			update_frame(queue_state, observation)
-			observation, _, flag_colide, _ = env.step(0.0,0.0,20)
+			observation, _, flag_colide, _ = env.step_2(-1)
 
 		if(flag_colide):
 			flag_colide = False
@@ -369,6 +501,9 @@ if __name__ == "__main__":
 
 		state = np.array(queue_state.queue)
 		state = np.transpose(state, [1, 0])  # move channels
+
+		# 
+
 
 
 		trajectory = []
@@ -378,24 +513,23 @@ if __name__ == "__main__":
 		
 		for step in range(MAX_STEPS):
 
-			mapa = env._get_map()  ## NEW STATE
-			frontier = env._get_frontier()
+			# env.visualize()
+
+			mapa, _ = env._get_map()  ## NEW STATE
+			# print(mapa)
 			# cv2.imshow('Mapa',mapa)
 			# cv2.waitKey(0)
 			# cv2.destroyAllWindows()
-			# print("Frontier :=", frontier)
-			# input("WAIT")
-
-			# print("Step: %d" % step)
+			frontier = env._get_frontier()
+			print("frontier := ", frontier)
 
 			# state = np.random.rand(1211,5)
 			action, lp = select_action(actor, state)
-			# print("Action :=", action)
-			linear, angular = action_mapper.map_action(action)
+			print("Action :=", action)
+			# linear, angular = action_mapper.map_action(action)
 
 			#execute action
-			next_observation, reward, done, _ = env.step(linear, angular, 20)
-			# next_observation, reward, done, _ = env.step(0.0, 0.0, 20)
+			next_observation, reward, done, _ = env.step_2(action)
 			update_frame(queue_state, next_observation)
 			next_state = np.array(queue_state.queue)
 			next_state = np.transpose(next_state, [1, 0])
@@ -408,19 +542,12 @@ if __name__ == "__main__":
 
 			state = next_state 
 
-			env.visualize()
-
 			
 
 			if done and step > 1:
 				print("Episode %d - Score = %f" % (ep,score))
 				break
 
-
-		# print(mapa)
-		# cv2.imshow('Mapa',mapa)
-		# cv2.waitKey(0)
-		# cv2.destroyAllWindows()
 
 		scores.append(score)
 		recent_scores.append(score)
@@ -436,11 +563,11 @@ if __name__ == "__main__":
 		#calculate state values
 		state_vals = []
 		for state in states:
-			state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
-			state.required_grad = True
+			state = concat_states(state)
+			# state = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
 			critic.eval()
 			state_vals.append(critic(state))
-			# critic.train()
+			critic.train()
 		
 		#get lambda returns for each timestep
 		#we use this lambda returns for critic and actor so CRITIC_LAMBDA is used for both
@@ -458,6 +585,9 @@ if __name__ == "__main__":
 		train_policy(deltas, lps, actor_optimizer)
 
 		ep += 1
+
+		
+		# input("AAAAAAAAAAAAAa")
 
 
 
