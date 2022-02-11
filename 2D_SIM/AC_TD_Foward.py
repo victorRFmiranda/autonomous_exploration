@@ -505,7 +505,7 @@ if __name__ == "__main__":
 		# 
 
 
-
+ 
 		trajectory = []
 		score = 0
 
@@ -548,6 +548,10 @@ if __name__ == "__main__":
 				print("Episode %d - Score = %f" % (ep,score))
 				break
 
+
+		cv2.imshow('Mapa',mapa)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
 
 		scores.append(score)
 		recent_scores.append(score)

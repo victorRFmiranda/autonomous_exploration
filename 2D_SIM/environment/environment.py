@@ -310,7 +310,7 @@ class Environment:
         path = searching_control(start, goal, obstacle, obstacle)
 
 
-        # print("Robot pose := ", robot_pose[0:2])
+        print("Robot pose := ", robot_pose[0:2])
         # print("start := ", start)
         # print("goal := ", goal)
         # print("Path := ", path)
@@ -346,11 +346,11 @@ class Environment:
 
         D = 1000
         env_done = self._env.done()
-        while(D > 0.2 and not env_done): 
+        while(D > 0.5 and not env_done): 
 
             robot_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
             D = self._distance(vec_path[i,0],vec_path[i,1],robot_pose[0],robot_pose[1])
-            print("D := ", D)
+            # print("D := ", D)
 
             linear, angular = self.control.control_([vec_path[i,0],vec_path[i,1]],robot_pose)
 

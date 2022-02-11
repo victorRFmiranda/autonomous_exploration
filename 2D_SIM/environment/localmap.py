@@ -86,6 +86,6 @@ class Map:
                     image[i,j] = 255
 
         # image = image.transpose()
-        # image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
         return image, self.map_increse

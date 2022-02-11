@@ -2,8 +2,30 @@
 
 DRL training algorithm for selection of the best exploration frontier in under discover environment.
 
+## Stand-aloe (2D_SIM)
 
-## Installation
+### Main CODE
+Actor-Critic method for selection of the best exploration frontier and reach this point using a path planning algorithm:
+```
+$ python3 AC_TD_Foward.py
+```
+Actor-Critic method considering reach a point in an environment avoiding of obstacles:
+```
+$ python3 AC_TD_FW_navigation.py
+```
+Asynchronous Advantage Actor Critic (A3C) method considering reach a point in an environment avoiding of obstacles, training on different maps in parallel:
+```
+$ python3 A3C.py
+```
+### Auxiliary codes
+Simulator Source Codes are in the following folder `2D_SIM/Simulation2d`
+
+The simulation python library are in `2D_SIM/pysim2d`
+
+The environment code for DRL training, containing frontier detection code, occupancy grid map generation code, and others are in `2D_SIM/environment`
+
+
+## ROS (autonomous_exploration)
 
 ### ROS Dependencies
 ```
@@ -34,7 +56,7 @@ $ cd ..
 $ catkin_make ## or catkin build
 ```
 
-## Main CODE
+### Main CODE
 
 The main code is located in:
 `/scripts/stage_openai/AC_TD_lambda_forward.py`

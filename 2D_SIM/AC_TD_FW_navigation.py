@@ -320,7 +320,7 @@ def update_frame(q, frame):
 
 ###################################################################
 if __name__ == "__main__":
-	env = Environment("./environment/world/ufmg_2")
+	env = Environment("./environment/world/room")
 	env.set_mode(Mode.ALL_RANDOM, False)
 	env.use_ditance_angle_to_end(True)
 	env.set_observation_rotation_size(128)
@@ -338,13 +338,13 @@ if __name__ == "__main__":
 	actor = PolicyNetwork(state_size, action_size).to(DEVICE)
 	critic = StateValueNetwork(state_size).to(DEVICE)
 
-	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-6)
-	critic_optimizer = optim.Adam(critic.parameters(), lr=3e-6)
+	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-5)
+	critic_optimizer = optim.Adam(critic.parameters(), lr=3e-5)
 
 	recent_scores = deque(maxlen=10000)
 
 	MAX_EPISODES = 100000
-	MAX_STEPS = 500
+	MAX_STEPS = 300
 	vector_len = 5
 	CRITIC_LAMBDA = 0.9
 	DISCOUNT_FACTOR = 0.9
