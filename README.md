@@ -22,7 +22,7 @@ Simulator Source Codes are in the following folder `2D_SIM/Simulation2d`
 
 The simulation python library are in `2D_SIM/pysim2d`
 
-The environment code for DRL training, containing frontier detection code, occupancy grid map generation code, and others are in `2D_SIM/environment`
+The environment code for DRL training, the frontier detection code, occupancy grid map generation code, and others are in `2D_SIM/environment`
 
 
 ## ROS (autonomous_exploration)
