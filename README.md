@@ -4,6 +4,11 @@ DRL training algorithm for selection of the best exploration frontier in under d
 
 ## Stand-aloe (2D_SIM)
 
+### Dependencies
+```
+$ sudo apt install gnuplot
+```
+
 ### Main CODE
 Actor-Critic method for selection of the best exploration frontier and reach this point using a path planning algorithm:
 ```
