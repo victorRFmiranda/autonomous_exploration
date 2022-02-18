@@ -7,6 +7,8 @@ from shared_adam import SharedAdam
 import os
 from queue import Queue
 import numpy as np
+# import multiprocessing
+from threading import Thread
 
 from environment.environment import Environment
 from environment.environment_node_data import Mode
@@ -14,11 +16,7 @@ import action_mapper
 
 
 
-
-
-
-
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "10"
 
 
 
@@ -95,16 +93,19 @@ def update_frame(q, frame):
 		q.get()
 	q.put(frame)
 
-class Worker(mp.Process):
-	def __init__(self, gnet, opt, global_ep, global_ep_r, res_queue, name):
+class Worker(Thread):
+	def __init__(self, gnet, opt, global_ep, global_ep_r, res_queue, agent_id, name):
 		super(Worker, self).__init__()
-		self.name = 'w%02i' % name
-		print(name)
+		self.name = 'w%i_%02i' % (agent_id,name)
+		self.id = name
+		self.mapas = mapas
+		self.agent_id = agent_id
+		# print(name)
 		self.g_ep, self.g_ep_r, self.res_queue = global_ep, global_ep_r, res_queue
 		self.gnet, self.opt = gnet, opt
 		self.lnet = Net(N_S, N_A)		   # local network
 		# self.env = gym.make('CartPole-v0').unwrapped
-		self.env = Environment(mapas[name])
+		self.env = Environment(self.mapas[self.id % len(self.mapas)])
 		self.env.set_mode(Mode.ALL_RANDOM, False)
 		self.env.use_ditance_angle_to_end(True)
 		self.env.set_observation_rotation_size(128)
@@ -137,8 +138,9 @@ class Worker(mp.Process):
 			ep_r = 0.
 			step = 0
 			while step < MAX_STEP:
-				# if self.name == 'w00':
-				self.env.visualize()
+				if (self.agent_id == 0) and (int(self.id / len(self.mapas)) == 0):
+					self.env.visualize()
+
 
 				
 				action = self.lnet.choose_action(v_wrap(state[None, :]))
@@ -167,9 +169,28 @@ class Worker(mp.Process):
 		self.res_queue.put(None)
 
 
+class Agent(mp.Process):
+	def __init__(self, gnet, opt, global_ep, global_ep_r, res_queue, a_id):
+		super(Agent, self).__init__()
+		self.gnet = gnet
+		self.opt = opt
+		self.global_ep = global_ep
+		self.global_ep_r = global_ep_r
+		self.res_queue = res_queue
+		self.id = a_id
+
+		self.number = 10
+
+	def run(self):
+		workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, self.id, i) for i in range(self.number)]
+		[w.start() for w in workers]
+
+
 if __name__ == "__main__":
 
 	# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+	np.random.seed(100)
 
 	UPDATE_GLOBAL_ITER = 5
 	GAMMA = 0.9
@@ -192,14 +213,15 @@ if __name__ == "__main__":
 
 	# mp.set_start_method('spawn')
 
-	gnet = Net(N_S, N_A)		# global network
+	gnet = Net(N_S, N_A)	# global network
 	gnet.share_memory()		 # share the global parameters in multiprocessing
 	opt = SharedAdam(gnet.parameters(), lr=1e-4, betas=(0.92, 0.999))	  # global optimizer
 	global_ep, global_ep_r, res_queue = mp.Value('i', 0), mp.Value('d', 0.), mp.Queue()
 
 	# parallel training
 	# workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(mp.cpu_count())]
-	workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(3)]
+	# workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(mp.cpu_count())]
+	workers = [Agent(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(3)]
 	[w.start() for w in workers]
 	res = []					# record episode reward to plot
 	while True:

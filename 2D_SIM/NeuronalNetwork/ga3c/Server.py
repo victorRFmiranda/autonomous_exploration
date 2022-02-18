@@ -102,7 +102,7 @@ class Server:
     def main(self):
         self.stats.start()
         self.dynamic_adjustment.start()
-
+ 
         if Config.PLAY_MODE:
             for trainer in self.trainers:
                 trainer.enabled = False
