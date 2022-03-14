@@ -1,13 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import math
 import numpy as np
+import cv2
 
 from pysim2d import pysim2d
 from .environment_fitness import FitnessData
 from .environment_node import Node
 # from .lidar_to_grid_map import Map, generate_ray_casting_grid_map
 from .localmap import Map
+# from .create_map import localmap
 from .getfrontier import getfrontier
 from .dijkstra import Dijkstra
 from .astar_start_end import searching_control
@@ -72,10 +74,11 @@ class Environment:
         self._ditance_angle_to_end_use = False
 
         # self.m_height, self.m_width, self.m_resolution=12,12,0.1
-        # self.m_morigin=[self.m_width/2.0,self.m_height/2.0]
+        
 
         # self.m_height, self.m_width, self.m_resolution=12,12,0.1
         self.m_height, self.m_width, self.m_resolution=100,100,1.0
+        # self.m_morigin=[self.m_width/2.0,self.m_height/2.0]
         self.control = Control()
         
 
@@ -138,6 +141,8 @@ class Environment:
     ########################################
     def _get_frontier(self):
         mapData, _ = self._get_map()
+        # n_img = cv2.cvtColor(mapData,cv2.COLOR_GRAY2RGB)
+
         
         width, height = mapData.shape
         front_vect = []
@@ -158,10 +163,15 @@ class Environment:
                                     mapData[i+2,j-2], mapData[i+2,j-1], mapData[i+2,j], mapData[i+2,j+1], mapData[i+2,j+2] ])
 
                         if( (len(np.where(s==205)[0]) >= 3) and (len(np.where(s1==0)[0])<=0) ):
-                            x = i
-                            y = j 
+                            x = j
+                            y = 100-i 
+
+                            # n_img[i,j] = [255,0,0]
 
                             front_vect.append([x,y])
+
+        # print("Frontier vec := ", front_vect)
+
 
         num_clusters = 4
         if(len(front_vect) > 4):
@@ -171,9 +181,10 @@ class Environment:
         else: 
             size = len(front_vect)
             for i in range(num_clusters-size):
-                front_vect.append(front_vect[i])
+                front_vect.append(front_vect[0])
 
             kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(front_vect)
+
 
 
         frontiers = list([])
@@ -191,11 +202,22 @@ class Environment:
 
         frontiers = kmeans.cluster_centers_[np.argsort(angles)] 
 
-        return frontiers
-        
 
-        # frontiers = getfrontier(mapData)
+        distances = []
+        for k in front_vect:
+            distances.append(self._distance(k[0],k[1],self._env.get_robot_pose_x(),self._env.get_robot_pose_y()))
+
+
+        # f_l = np.asarray(frontiers).astype(int)
+        # for k in (f_l):
+        #     n_img[k[1],k[0]] = [0,0,255]
+
+        # cv2.imshow('Mapa',n_img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+
         # return frontiers
+        return frontiers, front_vect[np.argmin(distances)]
 
 
 
@@ -210,6 +232,10 @@ class Environment:
         pose = [self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()]
 
         pmap,map_increase  = self.Map.update_map(lidar,pose)
+
+        # map_increase = 0
+        # pmap, map_increase = self.Map_Teste.updatemap(lidar, pose)
+        # print("pmap =: ", pmap.shape)
 
         return pmap, map_increase
 
@@ -346,6 +372,7 @@ class Environment:
 
         D = 1000
         env_done = self._env.done()
+        D_ant = D
         while(D > 0.5 and not env_done): 
 
             robot_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
@@ -360,6 +387,10 @@ class Environment:
 
             env_done = self._env.done()
 
+            if((D_ant - D) >= 0.5):
+                D_ant = D
+                _,_= self._get_map()
+
 
 
         
@@ -369,8 +400,9 @@ class Environment:
 
 
     def detect_action(self,action):
-        frontier = self._get_frontier()
+        frontier, best = self._get_frontier()
 
+        
         if(action ==0):
             outp = frontier[0]
         elif(action ==1):
@@ -380,47 +412,73 @@ class Environment:
         else:
             outp = frontier[3]
 
+
+        #AAAAAAAAAAAAAAAAAAAAAAAAAAAAa
+        outp = best
+
         return outp
 
     def step_2(self, action):
-        #### Select desired frontier based in discrete RNA prediction
-        f_def = self.detect_action(action)
+        if (action == -1):
 
-        env_robot_x = self._env.get_robot_pose_x()
-        env_robot_y = self._env.get_robot_pose_y()
-        env_robot_orientation = self._env.get_robot_pose_orientation()
+            mapa, _ = self._get_map()
 
-        D = self._distance(env_robot_x, env_robot_y,f_def[0],f_def[1])
+            # cv2.imshow('Mapa',mapa)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
 
-        # compute map before
-        mapa_before, gmap_before = self._get_map()
+            r_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
+            new_frontiers = np.zeros((4,2))
 
-        # Compute path to the desired frontier and follow
-        if(action != -1):
-            self.follow_path(f_def, mapa_before, np.asarray([env_robot_x,env_robot_y,env_robot_orientation]))
+            observation = []
+            observation.append(r_pose)
+            observation.append(new_frontiers)
+            observation.append(mapa)
+            observation = np.asarray(observation,dtype=object)
 
-        # get new map
-        mapa, gmap_after = self._get_map()
-        map_gain = gmap_after - gmap_before
+            done = False
+            reward = 0
 
-        # get new frontiers
-        new_frontiers = self._get_frontier()
+        else:
+            #### Select desired frontier based in discrete RNA prediction
+            f_def = self.detect_action(action)
 
-        # compute reward
-        done, reward = self.compute_reward(D, map_gain)
+            env_robot_x = self._env.get_robot_pose_x()
+            env_robot_y = self._env.get_robot_pose_y()
+            env_robot_orientation = self._env.get_robot_pose_orientation()
 
-        # compute new robot pose
-        r_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
+            D = self._distance(env_robot_x, env_robot_y,f_def[0],f_def[1])
 
-        # Compute new observation
-        observation = []
-        observation.append(r_pose)
-        observation.append(new_frontiers)
-        observation.append(mapa)
-        observation = np.asarray(observation,dtype=object)
+            # compute map before
+            mapa_before, gmap_before = self._get_map()
 
-        # print(observation)
-        # print(observation.shape)
+
+            # Compute path to the desired frontier and follow
+            if(action != -1):
+                self.follow_path(f_def, mapa_before, np.asarray([env_robot_x,env_robot_y,env_robot_orientation]))
+
+            # get new map
+            mapa, gmap_after = self._get_map()
+            map_gain = gmap_after - gmap_before
+
+            # get new frontiers
+            new_frontiers,_ = self._get_frontier()
+
+            # compute reward
+            done, reward = self.compute_reward(D, map_gain)
+
+            # compute new robot pose
+            r_pose = np.asarray([self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()])
+
+            # Compute new observation
+            observation = []
+            observation.append(r_pose)
+            observation.append(new_frontiers)
+            observation.append(mapa)
+            observation = np.asarray(observation,dtype=object)
+
+            # print(observation)
+            # print(observation.shape)
 
 
         return observation, reward, done, ""
@@ -465,6 +523,8 @@ class Environment:
     def reset_2(self):
         self.reset()
         self.Map = Map((self.m_height, self.m_width), self.m_resolution)
+
+        # self.Map_Teste = localmap(self.m_height, self.m_width, self.m_resolution, [0,0])
 
         return self.step_2(-1)
 
@@ -559,8 +619,6 @@ class Environment:
         the selected mode.
         :return:
         """
-        # self.m=localmap(self.m_height, self.m_width, self.m_resolution,self.m_morigin)
-        # self.Map = Map((self.m_height, self.m_width), self.m_resolution)
 
         self._fitness_data.reset()
         x, y, orientation = self._fitness_data.get_robot_start()

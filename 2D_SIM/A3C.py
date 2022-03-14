@@ -179,7 +179,7 @@ class Agent(mp.Process):
 		self.res_queue = res_queue
 		self.id = a_id
 
-		self.number = 10
+		self.number = 8
 
 	def run(self):
 		workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, self.id, i) for i in range(self.number)]

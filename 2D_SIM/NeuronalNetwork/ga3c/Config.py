@@ -35,7 +35,7 @@ class Config:
     # Path of the world
     PATH_TO_WORLD = ["../Simulation2d/world/room"]
     # Use this for multiple Environments in parallel
-    PATH_TO_WORLD = [ "../Simulation2d/world/room" , "../Simulation2d/world/four_rooms" , "../Simulation2d/world/roblab" , "../Simulation2d/world/ufmg_2" ]
+    PATH_TO_WORLD = [ "../Simulation2d/world/room" , "../Simulation2d/world/four_rooms" , "../Simulation2d/world/roblab" ]
 
     # Mode
     MODE=Mode.ALL_RANDOM
