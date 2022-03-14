@@ -95,7 +95,7 @@ class VecFieldController:
         # Update the closest index - index to the closest point in the curve
         self.state_k = 0
         d = float("inf")
-        for k in xrange(len(self.traj)):
+        for k in range(len(self.traj)):
             d_temp = math.sqrt((self.pos[0] - self.traj[k][0]) ** 2 + (self.pos[1] - self.traj[k][1]) ** 2)
             if d_temp < d:
                 self.state_k = k
@@ -265,11 +265,11 @@ class VecFieldController:
 
         if closed_path_flag:
             # Insert points between last and first
-            for i in xrange(traj_size):
+            for i in range(traj_size):
                 new_traj.append(original_traj[i])
 
                 iM = (i + 1) % traj_size
-                for j in xrange(1, qty_to_insert + 1):
+                for j in range(1, qty_to_insert + 1):
                     alpha = j / (qty_to_insert + 1.0)
                     px = (1 - alpha) * original_traj[i][0] + alpha * original_traj[iM][0]
                     py = (1 - alpha) * original_traj[i][1] + alpha * original_traj[iM][1]

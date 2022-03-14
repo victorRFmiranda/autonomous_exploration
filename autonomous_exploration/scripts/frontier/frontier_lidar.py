@@ -154,126 +154,129 @@ def run():
 		# print(len(frontiers))
 		ft_array = frontier()
 		Alive_msg = Int32()
-		if(len(frontiers) > 4):
-			Alive_msg.data = 1
+		if(len(frontiers) < 4):
+			for i in range(4-len(frontiers)):
+				front_vect.append(front_vect[0])
 
-			pointArray=MarkerArray()
-			for i in range(len(frontiers)):
-				ft = Point()
-				points=Marker()
-				#Set the frame ID and timestamp.  See the TF tutorials for information on these.
-				points.header.frame_id=mapData.header.frame_id
-				points.header.stamp=rospy.Time.now()
+		Alive_msg.data = 1
 
-				# points.ns= "markers"
-				points.id = i
+		pointArray=MarkerArray()
+		for i in range(len(frontiers)):
+			ft = Point()
+			points=Marker()
+			#Set the frame ID and timestamp.  See the TF tutorials for information on these.
+			points.header.frame_id=mapData.header.frame_id
+			points.header.stamp=rospy.Time.now()
 
-				points.type = Marker.SPHERE
-				points.scale.x = 0.1
-				points.scale.y = 0.1
-				points.scale.z = 0.1
-				#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
-				points.action = Marker.ADD;
+			# points.ns= "markers"
+			points.id = i
 
-				points.pose.orientation.w = 1.0;
-				points.scale.x=points.scale.y=0.1;
-				points.color.r = 255.0/255.0
-				points.color.g = 0.0/255.0
-				points.color.b = 0.0/255.0
-				points.color.a=1;
-				points.lifetime == rospy.Duration();
+			points.type = Marker.SPHERE
+			points.scale.x = 0.1
+			points.scale.y = 0.1
+			points.scale.z = 0.1
+			#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
+			points.action = Marker.ADD;
 
-
-				x=frontiers[i]
-
-				points.pose.position.x = x[0]
-				points.pose.position.y = x[1]
-				points.pose.position.z = 0
-				
-
-				#exploration_goal.header.frame_id= mapData.header.frame_id
-				#exploration_goal.header.stamp=rospy.Time(0)
-				#exploration_goal.point.x=x[0]
-				#exploration_goal.point.y=x[1]
-				#exploration_goal.point.z=0	
-
-				#targetspub.publish(exploration_goal)
-				ft.x = x[0]
-				ft.y = x[1]
-				ft.z = 0.0
-				ft_array.frontiers.append(ft)
-
-				# points.points=[exploration_goal.point]
-
-				pointArray.markers.append(points)
-				
-			pub.publish(pointArray) 
+			points.pose.orientation.w = 1.0;
+			points.scale.x=points.scale.y=0.1;
+			points.color.r = 255.0/255.0
+			points.color.g = 0.0/255.0
+			points.color.b = 0.0/255.0
+			points.color.a=1;
+			points.lifetime == rospy.Duration();
 
 
+			x=frontiers[i]
 
-
-			# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
-			# num_clusters = int(round(len(frontiers)*0.2))
-			num_clusters = 4
-			# print(num_clusters)
-			kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
-
-			clusterArray= MarkerArray()
-			for k in range(num_clusters):
-				p = Marker()
-				ft = Point()
-				#Set the frame ID and timestamp.  See the TF tutorials for information on these.
-				p.header.frame_id=mapData.header.frame_id
-				p.header.stamp=rospy.Time.now()
-
-				# points.ns= "markers"
-				p.id = k
-
-				p.type = Marker.SPHERE
-				p.scale.x = 0.2
-				p.scale.y = 0.2
-				p.scale.z = 0.2
-				#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
-				p.action = Marker.ADD;
-
-				p.pose.orientation.w = 1.0;
-				p.scale.x=p.scale.y=0.1;
-				p.color.r = 0.0/255.0
-				p.color.g = 0.0/255.0
-				p.color.b = 255.0/255.0
-				p.color.a=1;
-				p.lifetime == rospy.Duration();
-
-				pos = kmeans.cluster_centers_[k]
-				p.pose.position.x = pos[0]
-				p.pose.position.y = pos[1]
-				p.pose.position.z = 0
-
-				clusterArray.markers.append(p)
-
-				ft.x = pos[0]
-				ft.y = pos[1]
-				ft.z = 0.0
-				ft_array.clusters.append(ft)
-
+			points.pose.position.x = x[0]
+			points.pose.position.y = x[1]
+			points.pose.position.z = 0
 			
 
-			image, map_increse_count = create_image(mapData, kmeans.cluster_centers_)
-			ft_array.map_increase.data = map_increse_count
-			# cv2.imshow('image',image)
-			# cv2.waitKey(0)
-			bridge = CvBridge()
-			map_image = bridge.cv2_to_imgmsg(image, encoding="bgr8")
+			#exploration_goal.header.frame_id= mapData.header.frame_id
+			#exploration_goal.header.stamp=rospy.Time(0)
+			#exploration_goal.point.x=x[0]
+			#exploration_goal.point.y=x[1]
+			#exploration_goal.point.z=0	
+
+			#targetspub.publish(exploration_goal)
+			ft.x = x[0]
+			ft.y = x[1]
+			ft.z = 0.0
+			ft_array.frontiers.append(ft)
+
+			# points.points=[exploration_goal.point]
+
+			pointArray.markers.append(points)
+			
+		pub.publish(pointArray) 
 
 
 
-			pub2.publish(clusterArray) 
-			pub_frontiers.publish(ft_array)
-			pub_map.publish(map_image)
+
+		# clustering = DBSCAN(eps=0.5, min_samples=10).fit(frontiers)
+		# num_clusters = int(round(len(frontiers)*0.2))
+		num_clusters = 4
+		# print(num_clusters)
+		kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(frontiers)
+
+		clusterArray= MarkerArray()
+		for k in range(num_clusters):
+			p = Marker()
+			ft = Point()
+			#Set the frame ID and timestamp.  See the TF tutorials for information on these.
+			p.header.frame_id=mapData.header.frame_id
+			p.header.stamp=rospy.Time.now()
+
+			# points.ns= "markers"
+			p.id = k
+
+			p.type = Marker.SPHERE
+			p.scale.x = 0.2
+			p.scale.y = 0.2
+			p.scale.z = 0.2
+			#Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
+			p.action = Marker.ADD;
+
+			p.pose.orientation.w = 1.0;
+			p.scale.x=p.scale.y=0.1;
+			p.color.r = 0.0/255.0
+			p.color.g = 0.0/255.0
+			p.color.b = 255.0/255.0
+			p.color.a=1;
+			p.lifetime == rospy.Duration();
+
+			pos = kmeans.cluster_centers_[k]
+			p.pose.position.x = pos[0]
+			p.pose.position.y = pos[1]
+			p.pose.position.z = 0
+
+			clusterArray.markers.append(p)
+
+			ft.x = pos[0]
+			ft.y = pos[1]
+			ft.z = 0.0
+			ft_array.clusters.append(ft)
+
+		
+
+		image, map_increse_count = create_image(mapData, kmeans.cluster_centers_)
+		ft_array.map_increase.data = map_increse_count
+		# cv2.imshow('image',image)
+		# cv2.waitKey(0)
+		bridge = CvBridge()
+		map_image = bridge.cv2_to_imgmsg(image, encoding="bgr8")
 
 
-		else:
-			Alive_msg.data = 0
+
+		pub2.publish(clusterArray) 
+		pub_frontiers.publish(ft_array)
+		pub_map.publish(map_image)
+
+
+		# else:
+			# Alive_msg.data = 0
 
 		pub_alive.publish(Alive_msg)
 		rate.sleep()

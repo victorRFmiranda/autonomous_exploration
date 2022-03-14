@@ -32,15 +32,15 @@ class ConcatNetwork(nn.Module):
 		super(ConcatNetwork, self).__init__()
 
 		self.conv = nn.Sequential(
-				nn.Conv2d(1,16,kernel_size=5,stride=2),
+				nn.Conv2d(1,32,kernel_size=5,stride=2),
+				nn.BatchNorm2d(32),
+				nn.ReLU(),
+				nn.Conv2d(32,16,kernel_size=5,stride=2),
 				nn.BatchNorm2d(16),
 				nn.ReLU(),
-				nn.Conv2d(16,32,kernel_size=5,stride=2),
-				nn.BatchNorm2d(32),
-				nn.ReLU(),
-				nn.Conv2d(32,32,kernel_size=5,stride=2),
-				nn.BatchNorm2d(32),
-				nn.ReLU(),
+				nn.Conv2d(16,8,kernel_size=5,stride=2),
+				nn.BatchNorm2d(8),
+				nn.ReLU()
 				)
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))  # image 96x96
 		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(96)))
@@ -54,10 +54,13 @@ class ConcatNetwork(nn.Module):
 
 		# conv image
 		x[2] = self.conv(x[2])
-		x[2] = self.dense(x[2].view(x[2].size(0), -1))
+		# x[2] = self.dense(x[2].view(x[2].size(0), -1))
+		x[2] = x[2].view(x[2].size(0), -1)
 
 
 		x = torch.cat((x[0], x[1], x[2]), dim=1)
+
+		# print(x.shape) # 659
 
 		# CHANGE HERE
 		# x = torch.cat((x[0], x[1]), dim=1)
@@ -78,6 +81,13 @@ class PolicyNetwork(nn.Module):
 		# action_space -> quantidade de acoes
 		
 		super(PolicyNetwork, self).__init__()
+
+		self.conv = nn.Sequential(
+				nn.Conv1d(in_channels=observation_space,out_channels=1,kernel_size=1,stride=2),
+				nn.BatchNorm1d(1),
+				nn.ReLU()
+				)
+
 		# Resumo, entra observation_space entradas e saem action_space saidas, com 512 neuronios na camada escondida.
 		# Camada de entrada da rede de acordo com o observation_space
 		# 512 neuronios na camada escondida
@@ -91,6 +101,12 @@ class PolicyNetwork(nn.Module):
 	
 	#forward pass
 	def forward(self, x):
+
+		#Conv
+		# x = self.conv(x)
+		# print(x.view(x.size(0), -1).shape)
+		# input("wait")
+
 
 		#input states
 		x = self.input_layer(x)
@@ -164,6 +180,9 @@ def select_action(network, state, ccnetwork):
 
 	
 	#use network to predict action probabilities
+	# state = torch.transpose(state, 1,0)
+	# state = state.unsqueeze(0)
+	# print(state.shape)
 	action_probs = network(state)
 	state = state.detach()
 	

@@ -11,10 +11,10 @@
 
 
     <!-- Transforms -->
-    <node pkg="tf"
+    <!-- <node pkg="tf"
         type="static_transform_publisher"
         name="link1_broadcaster"
-        args="-20.0 -20.0 0 0 0 0 world odom 100" />
+        args="-20.0 -20.0 0 0 0 0 world odom 100" /> -->
 
 
     <!-- GMAPPING -->

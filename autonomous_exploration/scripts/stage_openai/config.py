@@ -6,7 +6,7 @@ class Config():
 
         parser = argparse.ArgumentParser(description='RL training for frontier selection')
         parser.add_argument('--num_actions', type=int, default=4, help='num frontiers (fixed)')
-        parser.add_argument('--num_states', type=int, default=21, help='num states (fixed)')
+        parser.add_argument('--num_states', type=int, default=659, help='num states (fixed)')
         parser.add_argument('--MAX_STEPS', type=int, default=10, help='num steps for episode)')
         parser.add_argument('--NUM_EPISODES', type=int, default=2000, help='num episodes')
         parser.add_argument('--TOTAL_EPISODES', type=int, default=1000, help='Total episodes')
