@@ -8,12 +8,15 @@ from pysim2d import pysim2d
 from .environment_fitness import FitnessData
 from .environment_node import Node
 # from .lidar_to_grid_map import Map, generate_ray_casting_grid_map
-from .localmap import Map
+# from .localmap import Map
 # from .create_map import localmap
-from .getfrontier import getfrontier
+# from .getfrontier import getfrontier
 from .dijkstra import Dijkstra
 from .astar_start_end import searching_control
 from sklearn.cluster import DBSCAN, KMeans
+
+from .grid_map import *
+from .utils import *
 
 
 ########################################
@@ -73,12 +76,12 @@ class Environment:
         self._observation_rotation_use = False
         self._ditance_angle_to_end_use = False
 
-        # self.m_height, self.m_width, self.m_resolution=12,12,0.1
-        
-
-        # self.m_height, self.m_width, self.m_resolution=12,12,0.1
-        self.m_height, self.m_width, self.m_resolution=100,100,1.0
+        self.m_height, self.m_width, self.m_resolution=100,100,0.5
+        self.P_prior = 0.5
+        self.P_occ = 0.9
+        self.P_free = 0.3
         # self.m_morigin=[self.m_width/2.0,self.m_height/2.0]
+
         self.control = Control()
         
 
@@ -141,7 +144,7 @@ class Environment:
     ########################################
     def _get_frontier(self):
         mapData, _ = self._get_map()
-        # n_img = cv2.cvtColor(mapData,cv2.COLOR_GRAY2RGB)
+        n_img = cv2.cvtColor(mapData,cv2.COLOR_GRAY2RGB)
 
         
         width, height = mapData.shape
@@ -162,11 +165,11 @@ class Environment:
                                     mapData[i+1,j-2], mapData[i+1,j-1], mapData[i+1,j], mapData[i+1,j+1], mapData[i+1,j+2],
                                     mapData[i+2,j-2], mapData[i+2,j-1], mapData[i+2,j], mapData[i+2,j+1], mapData[i+2,j+2] ])
 
-                        if( (len(np.where(s==205)[0]) >= 3) and (len(np.where(s1==0)[0])<=0) ):
-                            x = j
-                            y = 100-i 
+                        if( (len(np.where(s==192)[0]) >= 3) and (len(np.where(s1==0)[0])<=0) ):
+                            x = j * self.m_resolution
+                            y = 100 - (i * self.m_resolution)
 
-                            # n_img[i,j] = [255,0,0]
+                            n_img[i,j] = [255,0,0]
 
                             front_vect.append([x,y])
 
@@ -208,10 +211,6 @@ class Environment:
             distances.append(self._distance(k[0],k[1],self._env.get_robot_pose_x(),self._env.get_robot_pose_y()))
 
 
-        # f_l = np.asarray(frontiers).astype(int)
-        # for k in (f_l):
-        #     n_img[k[1],k[0]] = [0,0,255]
-
         # cv2.imshow('Mapa',n_img)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
@@ -230,12 +229,75 @@ class Environment:
 
         lidar = self._get_observation_notNormalized()
         pose = [self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()]
+        # pmap,map_increase  = self.Map.update_map(lidar,pose)
 
-        pmap,map_increase  = self.Map.update_map(lidar,pose)
+        ang_step = 0.00436332312998582394230922692122153178360717972135431364024297860042752278650862360920560392408627370553076123126
+        angle_min = -2.3561944902
+        angle_max = 2.3561944902
+        range_min = 0.06
+        range_max = 20
+        angles = np.arange(angle_min,angle_max,ang_step)
 
-        # map_increase = 0
-        # pmap, map_increase = self.Map_Teste.updatemap(lidar, pose)
-        # print("pmap =: ", pmap.shape)
+        alpha = 1.0  # delta for max rang noise
+
+        # Lidar measurements in X-Y plane
+        distances_x, distances_y = lidar_scan_xy(lidar, angles, pose[0], pose[1], pose[2])
+
+        # x1 and y1 for Bresenham's algorithm
+        x1, y1 = self.gridMap.discretize(pose[0], pose[1])
+
+        # for BGR image of the grid map
+        X2 = []
+        Y2 = []
+
+        for (dist_x, dist_y, dist) in zip(distances_x, distances_y, lidar):
+
+            # x2 and y2 for Bresenham's algorithm
+            x2, y2 = self.gridMap.discretize(dist_x, dist_y)
+
+            # draw a discrete line of free pixels, [robot position -> laser hit spot)
+            for (x_bres, y_bres) in bresenham(self.gridMap, x1, y1, x2, y2):
+
+                self.gridMap.update(x = x_bres, y = y_bres, p = self.P_free)
+
+            # mark laser hit spot as ocuppied (if exists)
+            if dist < range_max - alpha:
+                
+                self.gridMap.update(x = x2, y = y2, p = self.P_occ)
+
+            # for BGR image of the grid map
+            X2.append(x2)
+            Y2.append(y2)
+
+        # converting grip map to BGR image
+        # bgr_image = self.gridMap.to_BGR_image()
+
+        gray_image, map_increase = self.gridMap.to_grayscale_image()
+
+        # set_pixel_color(bgr_image, x1, y1, 'BLUE')
+            
+        # # # marking neighbouring pixels with blue pixel value 
+        # for (x, y) in self.gridMap.find_neighbours(x1, y1):
+        #     set_pixel_color(bgr_image, x, y, 'BLUE')
+
+        # # marking laser hit spots with green value
+        # for (x, y) in zip(X2,Y2):
+        #     set_pixel_color(bgr_image, x, y, 'GREEN')
+
+
+        resized_image = cv2.resize(gray_image,(100, 100),interpolation = cv2.INTER_NEAREST)
+
+
+        rotated_image = cv2.rotate(src = gray_image, 
+                       rotateCode = cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+
+        # cv2.imshow('Mapa',rotated_image)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+
+
+        pmap = rotated_image
 
         return pmap, map_increase
 
@@ -414,7 +476,7 @@ class Environment:
 
 
         #AAAAAAAAAAAAAAAAAAAAAAAAAAAAa
-        outp = best
+        # outp = best
 
         return outp
 
@@ -522,9 +584,12 @@ class Environment:
 
     def reset_2(self):
         self.reset()
-        self.Map = Map((self.m_height, self.m_width), self.m_resolution)
+        # self.Map = Map((self.m_height, self.m_width), self.m_resolution)
 
-        # self.Map_Teste = localmap(self.m_height, self.m_width, self.m_resolution, [0,0])
+        self.gridMap = GridMap(X_lim = [0, self.m_height], 
+                  Y_lim = [0, self.m_width], 
+                  resolution = self.m_resolution, 
+                  p = self.P_prior)
 
         return self.step_2(-1)
 

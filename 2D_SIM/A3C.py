@@ -26,27 +26,28 @@ class Net(nn.Module):
 
 
 		self.conv = nn.Sequential(
-				nn.Conv1d(in_channels=s_dim,out_channels=16,kernel_size=1,stride=2),
+				nn.Conv1d(in_channels=s_dim,out_channels=32,kernel_size=1,stride=2),
+				nn.BatchNorm1d(32),
+				nn.ReLU(),
+				nn.Conv1d(in_channels=32,out_channels=16,kernel_size=1,stride=2),
 				nn.BatchNorm1d(16),
-				nn.ReLU(),
-				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
-				nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
+				nn.ReLU()
 				)
 		linear_input_size = 32
 		self.dense_A = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(linear_input_size,256),
 					nn.ReLU(),
-					nn.Linear(512,a_dim)
+					nn.Linear(256,256),
+					nn.ReLU(),
+					nn.Linear(256,a_dim)
 					)
 
 		self.dense_V = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(linear_input_size,256),
 					nn.ReLU(),
-					nn.Linear(512,1)
+					nn.Linear(256,256),
+					nn.ReLU(),
+					nn.Linear(256,1)
 					)
 
 		self.distribution = torch.distributions.Categorical
@@ -66,6 +67,7 @@ class Net(nn.Module):
 		prob = F.softmax(logits, dim=1).data
 		m = self.distribution(prob)
 		return m.sample().numpy()[0]
+
 
 	def loss_func(self, s, a, v_t):
 		self.train()
@@ -179,7 +181,7 @@ class Agent(mp.Process):
 		self.res_queue = res_queue
 		self.id = a_id
 
-		self.number = 8
+		self.number = 5
 
 	def run(self):
 		workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, self.id, i) for i in range(self.number)]
@@ -194,7 +196,7 @@ if __name__ == "__main__":
 
 	UPDATE_GLOBAL_ITER = 5
 	GAMMA = 0.9
-	MAX_EP = 100000
+	MAX_EP = 200000
 	MAX_STEP = 300
 
 	mapas = ["./environment/world/room", "./environment/world/four_rooms" ,"./environment/world/square"]
@@ -215,7 +217,7 @@ if __name__ == "__main__":
 
 	gnet = Net(N_S, N_A)	# global network
 	gnet.share_memory()		 # share the global parameters in multiprocessing
-	opt = SharedAdam(gnet.parameters(), lr=1e-4, betas=(0.92, 0.999))	  # global optimizer
+	opt = SharedAdam(gnet.parameters(), lr=1e-6, betas=(0.92, 0.999))	  # global optimizer
 	global_ep, global_ep_r, res_queue = mp.Value('i', 0), mp.Value('d', 0.), mp.Queue()
 
 	# parallel training

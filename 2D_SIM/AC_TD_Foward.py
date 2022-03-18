@@ -67,7 +67,7 @@ class PolicyNetwork(nn.Module):
 				)
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[0],kernel_size=1),kernel_size=3),kernel_size=1)  
 		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[1],kernel_size=1),kernel_size=3),kernel_size=1)
-		map_input = 384 #???
+		map_input = 800 #???
 
 
 		cv1_inputsize = map_input + frontier_input + pos_input
@@ -109,7 +109,7 @@ class PolicyNetwork(nn.Module):
 
 		x2 = self.conv2d(observ[2])
 		x2 = x2.view(x2.size(0), -1)
-		
+
 
 		x = torch.cat((x0, x1, x2), dim=1)
 		
@@ -161,7 +161,7 @@ class StateValueNetwork(nn.Module):
 				)
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[0],kernel_size=1),kernel_size=3),kernel_size=1)  
 		convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(map_size[1],kernel_size=1),kernel_size=3),kernel_size=1)
-		map_input = 384 #???
+		map_input = 800 #???
 
 
 		cv1_inputsize = map_input + frontier_input + pos_input
@@ -518,12 +518,12 @@ if __name__ == "__main__":
 
 			mapa, _ = env._get_map()  ## NEW STATE
 			# print(mapa)
-			cv2.imshow('Mapa',mapa)
-			cv2.waitKey(0)
-			cv2.destroyAllWindows()
-			# frontier, _ = env._get_frontier()
-			# print("frontier := ", frontier)
-			# input("Wait")
+			# cv2.imshow('Mapa',mapa)
+			# cv2.waitKey(0)
+			# cv2.destroyAllWindows()
+			frontier, _ = env._get_frontier()
+			print("frontier := ", frontier)
+			input("Wait")
 
 			# state = np.random.rand(1211,5)
 			action, lp = select_action(actor, state)
