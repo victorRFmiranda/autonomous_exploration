@@ -55,6 +55,7 @@ class Environment:
         x_ = np.array(self.frame_q.queue)
         #x_ = np.transpose(x_, [1, 2, 0])  # move channels
         x_ = np.transpose(x_, [1, 0])  # move channels
+
         return x_
 
     def _update_frame_q(self, frame):

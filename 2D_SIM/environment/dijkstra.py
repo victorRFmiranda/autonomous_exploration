@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-show_animation = False
+show_animation = True
 
 
 class Dijkstra:
 
-    def __init__(self, ox, oy, resolution, robot_radius):
+    def __init__(self, range_x, range_y, ox, oy, resolution, robot_radius):
         """
         Initialize map for a star planning
         ox: x position list of Obstacles [m]
@@ -20,13 +20,20 @@ class Dijkstra:
         resolution: grid resolution [m]
         rr: robot radius[m]
         """
-        self.min_x = None
-        self.min_y = None
-        self.max_x = None
-        self.max_y = None
+        # self.min_x = None
+        # self.min_y = None
+        # self.max_x = None
+        # self.max_y = None
+        self.min_x = range_x[0]
+        self.min_y = range_y[0]
+        self.max_x = range_x[1]
+        self.max_y = range_y[1]
         self.x_width = None
         self.y_width = None
         self.obstacle_map = None
+
+        self.ox = ox
+        self.oy = oy
 
         self.resolution = resolution
         self.robot_radius = robot_radius
@@ -64,6 +71,13 @@ class Dijkstra:
 
         open_set, closed_set = dict(), dict()
         open_set[self.calc_index(start_node)] = start_node
+
+        if show_animation:  # pragma: no cover
+            plt.plot(self.ox, self.oy, ".k")
+            plt.plot(sx, sy, "og")
+            plt.plot(gx, gy, "xb")
+            plt.grid(True)
+            plt.axis("equal")
 
         while 1:
             c_id = min(open_set, key=lambda o: open_set[o].cost)
@@ -114,6 +128,11 @@ class Dijkstra:
 
         rx, ry = self.calc_final_path(goal_node, closed_set)
 
+        if show_animation:  # pragma: no cover
+            plt.plot(rx, ry, "-r")
+            plt.pause(0.01)
+            plt.show()
+
         return rx, ry
 
     def calc_final_path(self, goal_node, closed_set):
@@ -159,10 +178,10 @@ class Dijkstra:
 
     def calc_obstacle_map(self, ox, oy):
 
-        self.min_x = round(min(ox))
-        self.min_y = round(min(oy))
-        self.max_x = round(max(ox))
-        self.max_y = round(max(oy))
+        # self.min_x = round(min(ox)) - 10
+        # self.min_y = round(min(oy)) - 10
+        # self.max_x = round(max(ox)) + 10
+        # self.max_y = round(max(oy)) + 10
         # print("min_x:", self.min_x)
         # print("min_y:", self.min_y)
         # print("max_x:", self.max_x)

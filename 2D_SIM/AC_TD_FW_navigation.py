@@ -3,13 +3,14 @@ import torch, gc
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.distributions import Categorical
+from torch.distributions import Categorical, Bernoulli
 
 import numpy as np
 from collections import deque
 # import matplotlib
 # from sklearn.linear_model import LinearRegression
 from queue import Queue
+from collections import deque
 import cv2
 
 
@@ -17,11 +18,15 @@ from environment.environment import Environment
 from environment.environment_node_data import Mode
 import action_mapper
 
+import os
+
+
 
 # set up matplotlib
 # is_ipython = 'inline' in matplotlib.get_backend()
 # if is_ipython:
 # 	from IPython import display
+
 
  
 def conv2d_size_out(size, kernel_size = 1, stride = 2):
@@ -37,22 +42,25 @@ class PolicyNetwork(nn.Module):
 		
 		super(PolicyNetwork, self).__init__()
 		self.conv = nn.Sequential(
-				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=1,stride=2),
-				nn.BatchNorm1d(16),
+				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=9,stride=5),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
-				nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
+				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=5,stride=3),
+				nn.ReLU()
 				)
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
 		linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(observation_space,512),
 					nn.ReLU(),
-					nn.Linear(512,action_space)
+					nn.Linear(512,512),
+					nn.ReLU(),
+					nn.Linear(512,512),
+					nn.ReLU(),
+					nn.Linear(512,256),
+					nn.ReLU(),
+					nn.Linear(256,256),
+					nn.ReLU(),
+					nn.Linear(256,action_space)
 					)
 
 		
@@ -60,11 +68,15 @@ class PolicyNetwork(nn.Module):
 	#forward pass
 	def forward(self, x):
 
-		x = self.conv(x)
-		actions = self.dense(x.view(x.size(0), -1))
+		# x = self.conv(x)
+		# actions = self.dense(x.view(x.size(0), -1))
+
+		actions = self.dense(x)
 		
 		#get softmax for a probability distribution
 		action_probs = F.softmax(actions, dim=1)
+		# action_probs = F.relu(actions)
+
 		
 		return action_probs
 
@@ -78,28 +90,33 @@ class StateValueNetwork(nn.Module):
 		# # observation_space -> quantidade de estados
 
 		self.conv = nn.Sequential(
-				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=1,stride=2),
-				nn.BatchNorm1d(16),
+				nn.Conv1d(in_channels=observation_space,out_channels=16,kernel_size=9,stride=5),
 				nn.ReLU(),
-				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
-				nn.Conv1d(in_channels=32,out_channels=32,kernel_size=1,stride=2),
-				nn.BatchNorm1d(32),
-				nn.ReLU(),
+				nn.Conv1d(in_channels=16,out_channels=32,kernel_size=5,stride=3),
+				nn.ReLU()
 				)
 		convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(observation_space)))
 		linear_input_size = 32
 		self.dense = nn.Sequential(
-					nn.Linear(linear_input_size,512),
+					nn.Linear(observation_space,512),
 					nn.ReLU(),
-					nn.Linear(512,1)
+					nn.Linear(512,512),
+					nn.ReLU(),
+					nn.Linear(512,512),
+					nn.ReLU(),
+					nn.Linear(512,256),
+					nn.ReLU(),
+					nn.Linear(256,256),
+					nn.ReLU(),
+					nn.Linear(256,1)
 					)
 		
 	def forward(self, x):
 
-		x = self.conv(x)
-		state_value = self.dense(x.view(x.size(0), -1))
+		# x = self.conv(x)
+		# state_value = self.dense(x.view(x.size(0), -1))
+
+		state_value = self.dense(x)
 		
 		return state_value
 
@@ -330,24 +347,38 @@ if __name__ == "__main__":
 	observation, _, flag_colide, _ = env.reset()
 
 
-	state_size = env.observation_size()
+	state_size = env.observation_size() - 2
 	action_size = action_mapper.ACTION_SIZE
+
+	# print(state_size)
+	# input("Wait")
 
 	DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-	actor = PolicyNetwork(state_size, action_size).to(DEVICE)
-	critic = StateValueNetwork(state_size).to(DEVICE)
+	MAX_EPISODES = 100000
+	MAX_STEPS = 500
+	vector_len = 3
+	CRITIC_LAMBDA = 0.9
+	DISCOUNT_FACTOR = 0.9
+	LOAD_NETWORK = True
+	file_path = "./Models/"
+		
 
-	actor_optimizer = optim.Adam(actor.parameters(), lr=3e-5)
-	critic_optimizer = optim.Adam(critic.parameters(), lr=3e-5)
+	actor = PolicyNetwork(state_size*vector_len, action_size).to(DEVICE)
+	critic = StateValueNetwork(state_size*vector_len).to(DEVICE)
+
+
+	if(LOAD_NETWORK == True):
+		print("Loading Network")
+		actor.load_state_dict(torch.load(file_path+"actor.pt"))
+		critic.load_state_dict(torch.load(file_path+"critic.pt"))
+
+
+	actor_optimizer = optim.RAdam(actor.parameters(), lr=3e-5)
+	critic_optimizer = optim.RAdam(critic.parameters(), lr=3e-5)
 
 	recent_scores = deque(maxlen=10000)
 
-	MAX_EPISODES = 100000
-	MAX_STEPS = 300
-	vector_len = 5
-	CRITIC_LAMBDA = 0.9
-	DISCOUNT_FACTOR = 0.9
 
 	queue_state = Queue(maxsize = vector_len)
 	flag_colide = False 
@@ -355,8 +386,20 @@ if __name__ == "__main__":
 	ep = 0
 	# for ep in range(MAX_EPISODES):
 	while (ep < MAX_EPISODES):
-
 		queue_state.queue.clear()
+
+		# if (ep % 300 == 0):
+		# 	os.system("pkill -x gnuplot_qt")
+		# 	lista = ["./environment/world/square", "./environment/world/room", "./environment/world/four_rooms", "./environment/world/roblab"]
+		# 	env = Environment(np.random.choice(lista))
+		# 	env.set_mode(Mode.ALL_RANDOM, False)
+		# 	env.use_ditance_angle_to_end(True)
+		# 	env.set_observation_rotation_size(128)
+		# 	env.use_observation_rotation_size(True)
+		# 	env.set_cluster_size(1)
+
+
+
 		observation, _, flag_colide, _ = env.reset()
 
 		while(not queue_state.full()):
@@ -369,12 +412,15 @@ if __name__ == "__main__":
 
 		state = np.array(queue_state.queue)
 		state = np.transpose(state, [1, 0])  # move channels
+		state = np.reshape(state, -1)
+
+		# print(state.shape)
+		# input("WAIT")
+
 
 
 		trajectory = []
 		score = 0
-
-		print("Episode: %d" % ep)
 		
 		for step in range(MAX_STEPS):
 			
@@ -387,6 +433,7 @@ if __name__ == "__main__":
 			update_frame(queue_state, next_observation)
 			next_state = np.array(queue_state.queue)
 			next_state = np.transpose(next_state, [1, 0])
+			next_state = np.reshape(next_state, -1)
 
 			#track episode score
 			score += reward
@@ -401,18 +448,14 @@ if __name__ == "__main__":
 			
 
 			if done and step > 1:
-				print("Episode %d - Score = %f" % (ep,score))
 				break
 
-
-		# print(mapa)
-		# cv2.imshow('Mapa',mapa)
-		# cv2.waitKey(0)
-		# cv2.destroyAllWindows()
 
 		scores.append(score)
 		recent_scores.append(score)
 		episode_durations.append(step+1)
+
+		print("Episode %d - Score = %.2f" % (ep,score), "--- AVG Score: %.2f" % np.mean(scores[-100:]))
 
 		
 		#get items from trajectory
@@ -446,6 +489,10 @@ if __name__ == "__main__":
 		train_policy(deltas, lps, actor_optimizer)
 
 		ep += 1
+
+		if (ep%5000 == 0):
+			torch.save(actor.state_dict(), "./Models/actor_"+str(ep)+".pt")
+			torch.save(critic.state_dict(), "./Models/critic_"+str(ep)+".pt")
 
 
 

@@ -55,6 +55,8 @@ class ThreadPredictor(Thread):
                 size += 1
 
             batch = states[:size]
+            # print(size)
+            # input("WAIT")
             p, v = self.server.model.predict_p_and_v(batch)
 
             for i in range(size):

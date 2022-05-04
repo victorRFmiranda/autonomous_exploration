@@ -44,6 +44,7 @@ class ThreadTrainer(Thread):
             batch_size = 0
             while batch_size <= Config.TRAINING_MIN_BATCH_SIZE:
                 x_, r_, a_ = self.server.training_q.get()
+                
                 if batch_size == 0:
                     x__ = x_; r__ = r_; a__ = a_
                 else:
@@ -51,6 +52,7 @@ class ThreadTrainer(Thread):
                     r__ = np.concatenate((r__, r_))
                     a__ = np.concatenate((a__, a_))
                 batch_size += x_.shape[0]
+                
             
             if Config.TRAIN_MODELS:
                 self.server.train_model(x__, r__, a__, self.id)

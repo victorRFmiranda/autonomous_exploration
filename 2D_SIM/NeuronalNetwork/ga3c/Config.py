@@ -33,9 +33,10 @@ class Config:
     # Environment configuration
 
     # Path of the world
-    PATH_TO_WORLD = ["../Simulation2d/world/room"]
+    # PATH_TO_WORLD = ["../Simulation2d/world/four_rooms"]
     # Use this for multiple Environments in parallel
-    PATH_TO_WORLD = [ "../Simulation2d/world/room" , "../Simulation2d/world/four_rooms" , "../Simulation2d/world/roblab" ]
+    # PATH_TO_WORLD = [ "../Simulation2d/world/room" , "../Simulation2d/world/four_rooms" , "../Simulation2d/world/roblab" , "../Simulation2d/world/ufmg_2"]
+    PATH_TO_WORLD = [ "../Simulation2d/world/room" , "../Simulation2d/world/four_rooms" , "../Simulation2d/world/roblab"]
 
     # Mode
     MODE=Mode.ALL_RANDOM
@@ -67,9 +68,9 @@ class Config:
     # Number of Agents
     AGENTS = 32
     # Number of Predictors
-    PREDICTORS = 8 #2
+    PREDICTORS = 16 #2
     # Number of Trainers
-    TRAINERS = 8 #2
+    TRAINERS = 16 #2
 
     # Device
     DEVICE = 'gpu:0'
@@ -101,11 +102,12 @@ class Config:
 
     # Input of the DNN
     STACKED_FRAMES = 4
-    OBSERVATION_SIZE=1081+OBSERVATION_ROTATION_SIZE
+    OBSERVATION_SIZE=684+OBSERVATION_ROTATION_SIZE
+    # OBSERVATION_SIZE=1081+OBSERVATION_ROTATION_SIZE
 
     # Total number of episodes and annealing frequency
     EPISODES = 400000
-    ANNEALING_EPISODE_COUNT = 400000
+    ANNEALING_EPISODE_COUNT = 100000
 
     # Entropy regualrization hyper-parameter
     BETA_START = 0.01
@@ -129,7 +131,7 @@ class Config:
     # Epsilon (regularize policy lag in GA3C)
     LOG_EPSILON = 1e-6
     # Training min batch size - increasing the batch size increases the stability of the algorithm, but make learning slower
-    TRAINING_MIN_BATCH_SIZE = 32 #0
+    TRAINING_MIN_BATCH_SIZE = 0 #32 #0
 
     #########################################################################
     # Log and save

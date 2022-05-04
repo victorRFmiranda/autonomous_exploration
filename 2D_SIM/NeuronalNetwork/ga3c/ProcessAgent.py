@@ -52,7 +52,7 @@ class ProcessAgent(Process):
         # one frame at a time
         self.wait_q = Queue(maxsize=1)
         self.exit_flag = Value('i', 0)
-
+ 
     @staticmethod
     def _accumulate_rewards(experiences, discount_factor, terminal_reward):
         reward_sum = terminal_reward
@@ -107,7 +107,7 @@ class ProcessAgent(Process):
             if Config.MAX_STEP_ITERATION < step_iteration:
                 step_iteration = 0
                 done = True
-
+ 
             exp = Experience(self.env.previous_state, action, prediction, reward, done)
             experiences.append(exp)
 

@@ -3,6 +3,7 @@
 import math
 import numpy as np
 import cv2
+from collections import deque
 
 from pysim2d import pysim2d
 from .environment_fitness import FitnessData
@@ -17,6 +18,10 @@ from sklearn.cluster import DBSCAN, KMeans
 
 from .grid_map import *
 from .utils import *
+
+import warnings
+
+warnings.filterwarnings('ignore')
 
 
 ########################################
@@ -146,7 +151,6 @@ class Environment:
         mapData, _ = self._get_map()
         n_img = cv2.cvtColor(mapData,cv2.COLOR_GRAY2RGB)
 
-        
         width, height = mapData.shape
         front_vect = []
         s = list([])
@@ -176,8 +180,8 @@ class Environment:
         # print("Frontier vec := ", front_vect)
 
 
-        num_clusters = 4
-        if(len(front_vect) > 4):
+        num_clusters = int(round(len(front_vect)/10))
+        if(len(front_vect) >= 4):
             # print(num_clusters)
             kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(front_vect)
 
@@ -189,13 +193,39 @@ class Environment:
             kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(front_vect)
 
 
+        clusters = []
+        for k in kmeans.cluster_centers_:
+            w_i = int(round((100 - k[1])/self.m_resolution))
+            h_j = int(round(k[0]/self.m_resolution))
+            if(mapData[w_i,h_j] == 255):
+                clusters.append(k)
 
+        
+        if len(clusters) < 4:
+            for k in range(4 - len(clusters)):
+                clusters.append(clusters[0])
+
+        clusters = np.asarray(clusters)
+
+
+
+        # Check 4 closest frontiers
+        distances = []
+        for k in clusters:
+            distances.append(self._distance(k[0],k[1],self._env.get_robot_pose_x(),self._env.get_robot_pose_y()))
+
+        centers = clusters[np.argsort(distances)[0:4]]
+
+
+        # Order frontier angles
         frontiers = list([])
         angles = list([])
         pose = [self._env.get_robot_pose_x(),self._env.get_robot_pose_y(),self._env.get_robot_pose_orientation()]
-        for i in range(num_clusters):
-            sx = kmeans.cluster_centers_[i][0] - pose[0]
-            sy = kmeans.cluster_centers_[i][1] - pose[1]
+        for i in range(len(centers)):
+            # sx = kmeans.cluster_centers_[i][0] - pose[0]
+            # sy = kmeans.cluster_centers_[i][1] - pose[1]
+            sx = centers[i][0] - pose[0]
+            sy = centers[i][1] - pose[1]
             ang_0 = math.atan2(sy,sx)
             diff = (pose[2] - ang_0) % (math.pi * 2)
             if diff >= math.pi:
@@ -203,20 +233,25 @@ class Environment:
 
             angles.append(diff)
 
-        frontiers = kmeans.cluster_centers_[np.argsort(angles)] 
+        frontiers = centers[np.argsort(angles)] 
+
+        for k in frontiers:
+            w_i = int(round((100 - k[1])/self.m_resolution))
+            h_j = int(round(k[0]/self.m_resolution))
+            n_img[w_i,h_j] = [0,0,255]
 
 
-        distances = []
-        for k in front_vect:
-            distances.append(self._distance(k[0],k[1],self._env.get_robot_pose_x(),self._env.get_robot_pose_y()))
+        # distances = []
+        # for k in front_vect:
+        #     distances.append(self._distance(k[0],k[1],self._env.get_robot_pose_x(),self._env.get_robot_pose_y()))
 
 
         # cv2.imshow('Mapa',n_img)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-        # return frontiers
-        return frontiers, front_vect[np.argmin(distances)]
+        return frontiers
+        # return frontiers, front_vect[np.argmin(distances)]
 
 
 
@@ -381,55 +416,118 @@ class Environment:
     ####         Inicio do STEP com Fronteiras          ####
     ########################################################
     def follow_path(self, frontier, map_before, robot_pose):
-        start = [int(round((robot_pose[0])/self.m_resolution)),int(round((robot_pose[1])/self.m_resolution))]
-        goal = [int(round((frontier[0])/self.m_resolution)),int(round((frontier[1])/self.m_resolution))]
+        start = [int(round((robot_pose[0])/self.m_resolution)),int(round((100-robot_pose[1])/self.m_resolution))]
+        goal = [int(round((frontier[0])/self.m_resolution)),int(round((100-frontier[1])/self.m_resolution))]
 
-        obst_idx = np.where(map_before == 0.0)
+        # start = [robot_pose[0],robot_pose[1]]
+        # goal = [frontier[0], frontier[1]]
+
+        print("RObot pose := ", robot_pose)
+        print("Start :=", start)
+        print("GOAL :=", goal)
+
+
+        # Searching Obstacles
+        obst_idx = np.where(map_before == 0)
         obstacles = [obst_idx[0].tolist(),obst_idx[1].tolist()]
-        ox = obstacles[1]
-        oy = obstacles[0]
 
 
+        # Setting map limits for planning
+        obstacles[0].append(goal[1])
+        obstacles[0].append(start[1])
+        obstacles[1].append(goal[0])
+        obstacles[1].append(start[0])
+        min_X = min(obstacles[1])
+        min_Y = min(obstacles[0])
+        max_X = max(obstacles[1])
+        max_Y = max(obstacles[0])
+        obstacles[0].pop()
+        obstacles[0].pop()
+        obstacles[1].pop()
+        obstacles[1].pop()
+
+        # Including unknown places as obstacles
+        unknown_obst = np.where(map_before[min_Y:max_Y,min_X:max_X] == 192)
+        obstacles[0].extend(unknown_obst[0].tolist())
+        obstacles[1].extend(unknown_obst[1].tolist())
+
+
+        print("min_x:", min_X)
+        print("min_y:", min_Y)
+        print("max_x:", max_X)
+        print("max_y:", max_Y)
+
+        print(obstacles)
+        # print(unknown_obst[0].tolist())
+
+
+        input("WAIT")
+
+
+
+        # print(np.asarray(obstacles).shape)
+        # input("WA")
+
+
+        # cv2.imshow('Mapa',map_before)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # # input("WAIT")
+
+
+ 
         #### ASTAR Start-END
-        obst_list = []
-        for i in range(len(obstacles[0])):
-            obst_list.append([obstacles[0][i],obstacles[1][i]])
-        obstacle = np.asarray(obst_list)
-        path = searching_control(start, goal, obstacle, obstacle)
+        # print("RObot pose := ", robot_pose)
+        # print("Start :=", start)
+        # print("GOAL :=", goal)
+        # obst_list = []
+        # for i in range(len(obstacles[0])):
+        #     obst_list.append([obstacles[0][i],obstacles[1][i]])
+        # obstacle = np.asarray(obst_list)
+        
+        # path = searching_control(start, goal, obstacle, obstacle)
 
 
-        print("Robot pose := ", robot_pose[0:2])
-        # print("start := ", start)
-        # print("goal := ", goal)
-        # print("Path := ", path)
-
-        # input("Wait")
 
         ####### Dijskstra
-        # grid_size = 0.5
-        # robot_radius = 1.0
-        # # dijkstra = Dijkstra(np.asarray([[0.0,100.0],[0.0,100.0]]),ox, oy, grid_size, robot_radius)
+        # grid_size = [self.m_resolution, 2.0]  # map_resolution, grid_search
+        grid_size = 1.0
+        robot_radius = 1.0
+        # ox = obst_aux[:,0]
+        # oy = obst_aux[:,1]
+        ox = obstacles[1]
+        oy = obstacles[0]
+        dijkstra = Dijkstra([min_X,max_X],[min_Y,max_Y],ox, oy, grid_size, robot_radius)
+        # dijkstra = Dijkstra([0.0,100.0/self.m_resolution],[0.0,100.0/self.m_resolution],ox,oy, grid_size, robot_radius)
         # dijkstra = Dijkstra(ox, oy, grid_size, robot_radius)
+        print("Planning")
+        
+        # input("Wait 1")
+        path = []
+        rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
+        # path.append(start)
+        for j in range(len(rx)):
+            path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
 
-        # print("Planning")
-        # print("Start :=", start)
-        # # goal = [start[0], start[1] + 5]
-        # print("GOAL :=", goal)
-        # path = []
-        # rx, ry = dijkstra.planning(start[0], start[1], goal[0], goal[1])
-        # print("rx := ", rx)
-        # print("ry := ", ry)
-        # input("WAIT")
-        # # path.append(start)
-        # for j in range(len(rx)):
-        #     path.append([rx[len(rx)-1-j],ry[len(rx)-1-j]])
+
+        # print("PATH := ", path)
+        # input("WAIT4")
+
+        # cv2.imshow('Mapa',map_before)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
 
         vec_path = np.zeros((len(path),2))
         for i in range(len(path)):
-            vec_path[i,:] = list(path[i])
-            vec_path[i,0] = (vec_path[i,0]*self.m_resolution + self.m_resolution/2.0)
-            vec_path[i,1] = (vec_path[i,1]*self.m_resolution + self.m_resolution/2.0)
+            # vec_path[i,:] = list(path[i])
+            # vec_path[i,0] = (vec_path[i,0]*self.m_resolution + self.m_resolution/2.0)
+            # vec_path[i,1] = (vec_path[i,1]*self.m_resolution + self.m_resolution/2.0)
+            vec_path[i,0] = path[i][0]*self.m_resolution
+            vec_path[i,1] = 100.0 - (path[i][1]*self.m_resolution)
+
+        print("PATH Meters:= ", vec_path)
+        input("WAIT4")
 
 
         D = 1000
@@ -462,7 +560,7 @@ class Environment:
 
 
     def detect_action(self,action):
-        frontier, best = self._get_frontier()
+        frontier = self._get_frontier()
 
         
         if(action ==0):
@@ -524,7 +622,7 @@ class Environment:
             map_gain = gmap_after - gmap_before
 
             # get new frontiers
-            new_frontiers,_ = self._get_frontier()
+            new_frontiers = self._get_frontier()
 
             # compute reward
             done, reward = self.compute_reward(D, map_gain)
@@ -554,7 +652,7 @@ class Environment:
         map_reward = 0.07*float(map_gain) #/float(self.freeMap_size)
         distancy = math.log(D)
 
-        re = distancy + map_reward
+        reward = distancy + map_reward
 
         if env_done:
             reward = -20
@@ -647,8 +745,9 @@ class Environment:
                 angle_sum += angle_step_size
 
         # Including Distance and orientation to the target
-        observation.append(self._fitness_data._distance_robot_to_end(env_robot_x,env_robot_y)) # ditance
-        observation.append(angle_target)  # angle
+        # AQUUUUUUUUUUUUUUUUUUUUUUIIIIIIIIIIIIIIIII
+        # observation.append(self._fitness_data._distance_robot_to_end(env_robot_x,env_robot_y)) # ditance
+        # observation.append(angle_target)  # angle
 
         return observation, reward, done, ""
 

@@ -6,5 +6,5 @@ CXX_FLAGS = -O3 -DNDEBUG -fPIC   -std=c++11
 
 CXX_DEFINES = -DBOOST_ALL_NO_LIB -DBOOST_PYTHON_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -Dpysim2d_EXPORTS
 
-CXX_INCLUDES = -I/home/victor/PhD/2D_SIM/Simulation2d/include -I/usr/include/python3.8 
+CXX_INCLUDES = -I/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include -I/usr/include/python3.8 
 

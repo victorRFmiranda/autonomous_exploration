@@ -1,4 +1,4 @@
-# Install script for directory: /home/victor/PhD/2D_SIM/Simulation2d
+# Install script for directory: /home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/victor/PhD/2D_SIM/pysim2d/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/pysim2d/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

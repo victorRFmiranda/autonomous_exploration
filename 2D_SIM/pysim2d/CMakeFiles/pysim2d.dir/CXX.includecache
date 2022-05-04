@@ -6,25 +6,25 @@
 
 #IncludeRegexTransform: 
 
-/home/victor/PhD/2D_SIM/Simulation2d/bindings/pysim2d.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/bindings/pysim2d.cpp
 simulation2d/simulation2d.h
-/home/victor/PhD/2D_SIM/Simulation2d/bindings/simulation2d/simulation2d.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/bindings/simulation2d/simulation2d.h
 boost/python.hpp
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/circle.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/circle.h
 eigen3/Eigen/Core
 -
 iostream
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/data_container.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/data_container.h
 simulation2d/line.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/line.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/line.h
 simulation2d/circle.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/circle.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/circle.h
 simulation2d/robot.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
 vector
 -
 iostream
@@ -32,7 +32,7 @@ iostream
 immintrin.h
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/lidar.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/lidar.h
 vector
 -
 eigen3/Eigen/Geometry
@@ -42,65 +42,65 @@ iostream
 immintrin.h
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/line.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/line.h
 eigen3/Eigen/Core
 -
 iostream
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/robot.h
 simulation2d/lidar.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/lidar.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/lidar.h
 eigen3/Eigen/Geometry
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d.h
 simulation2d/data_container.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/data_container.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/data_container.h
 simulation2d/robot.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
 simulation2d/visualization_gnuplot.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/visualization_gnuplot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/visualization_gnuplot.h
 
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/visualization_gnuplot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/visualization_gnuplot.h
 simulation2d/data_container.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/data_container.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/data_container.h
 simulation2d/robot.h
-/home/victor/PhD/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/include/simulation2d/simulation2d/robot.h
 eigen3/Eigen/Core
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/circle.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/circle.cpp
 simulation2d/circle.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/circle.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/circle.h
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/data_container.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/data_container.cpp
 simulation2d/data_container.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/data_container.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/data_container.h
 iostream
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/lidar.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/lidar.cpp
 simulation2d/lidar.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/lidar.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/lidar.h
 iostream
 -
 eigen3/Eigen/Geometry
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/line.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/line.cpp
 simulation2d/line.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/line.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/line.h
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/main.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/main.cpp
 simulation2d/simulation2d.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/simulation2d.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/simulation2d.h
 simulation2d/robot.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/robot.h
 simulation2d/data_container.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/data_container.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/data_container.h
 simulation2d/line.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/line.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/line.h
 iostream
 -
 stdlib.h
@@ -108,13 +108,13 @@ stdlib.h
 chrono
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/robot.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/robot.cpp
 simulation2d/robot.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/robot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/robot.h
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d.cpp
 simulation2d/simulation2d.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/simulation2d.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/simulation2d.h
 chrono
 -
 fstream
@@ -122,9 +122,9 @@ fstream
 boost/tokenizer.hpp
 -
 
-/home/victor/PhD/2D_SIM/Simulation2d/src/visualization_gnuplot.cpp
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/visualization_gnuplot.cpp
 simulation2d/visualization_gnuplot.h
-/home/victor/PhD/2D_SIM/Simulation2d/src/simulation2d/visualization_gnuplot.h
+/home/victor/ROS/catkin_ws/src/autonomous_exploration/2D_SIM/Simulation2d/src/simulation2d/visualization_gnuplot.h
 stdio.h
 -
 limits

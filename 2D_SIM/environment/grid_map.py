@@ -4,9 +4,6 @@ import numpy as np
 import sys
 import cv2
 
-SCRIPTS_PATH = '/home/maestro/catkin_ws/src/grid_mapping/scripts'
-sys.path.insert(0, SCRIPTS_PATH)
-
 from .bresenham import *
 
 TRESHOLD_P_FREE = 0.3

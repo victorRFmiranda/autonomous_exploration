@@ -514,16 +514,16 @@ if __name__ == "__main__":
 		for step in range(MAX_STEPS):
 
 			env.visualize()
-			print("Robot pose := ", [env._env.get_robot_pose_x(),env._env.get_robot_pose_y()])
+			# print("Robot pose := ", [env._env.get_robot_pose_x(),env._env.get_robot_pose_y()])
 
-			mapa, _ = env._get_map()  ## NEW STATE
+			# mapa, _ = env._get_map()  ## NEW STATE
 			# print(mapa)
 			# cv2.imshow('Mapa',mapa)
 			# cv2.waitKey(0)
 			# cv2.destroyAllWindows()
-			frontier, _ = env._get_frontier()
-			print("frontier := ", frontier)
-			input("Wait")
+			# frontier, _ = env._get_frontier()
+			# print("frontier := ", frontier)
+			# input("Wait")
 
 			# state = np.random.rand(1211,5)
 			action, lp = select_action(actor, state)
@@ -537,6 +537,7 @@ if __name__ == "__main__":
 			next_state = np.transpose(next_state, [1, 0])
 
 			#track episode score
+			print("Reward :=", reward)
 			score += reward
 
 			#store into trajectory
